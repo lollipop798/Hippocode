@@ -1,0 +1,257 @@
+# Hippocode 命令协议
+
+## 1. 命令设计原则
+
+所有命令统一使用 `/hippo:` 命名空间，避免与宿主内置命令冲突。
+
+统一输出结构：
+
+```ts
+{
+  status: "ok" | "partial" | "error",
+  payload: {
+    humanReadable: string,
+    structured: unknown
+  },
+  telemetry: {
+    confidence: number,
+    exposureLevel: "summary" | "focused" | "full",
+    dependencies: string[],
+    exposureTrace: ("summary" | "focused" | "full")[],
+    nextCommandHint?: string
+  }
+}
+```
+
+统一约束：
+
+- 默认先读 `summary`
+- 默认不把完整长期记忆塞进上下文
+- 写操作优先落到 episodic / candidate 层
+- `humanReadable` 供开发者或 Agent 阅读
+- `structured` 供程序消费
+
+## 2. `/hippo:recall`
+
+### 目标
+
+为当前请求召回最相关的项目记忆，并保持渐进式暴露。
+
+### 输入草案
+
+```ts
+{
+  prompt: string;
+  intent: string;
+  scope: "task" | "module" | "project";
+  focusPath?: string;
+  filters?: string[];
+  exposureLevel?: "summary" | "focused" | "full";
+}
+```
+
+### 默认读取边界
+
+- `.memory/project-profile.md`
+- `.memory/current-focus.md`
+- `.memory/associative-graph.json`
+- 各类记忆条目的摘要信息
+
+### 默认写入边界
+
+- 不写长期记忆
+- 最多记录一次 recall telemetry 或会话级临时结果
+
+### 输出重点
+
+- 高相关记忆摘要
+- 关联模块、决策、事故和模式
+- 当前约束与风险
+- 建议的下一步 focus path
+
+### 示例输出
+
+```json
+{
+  "status": "ok",
+  "payload": {
+    "humanReadable": "召回到 3 条高相关项目记忆，建议先查看 auth 模块约束与登录事故复盘。",
+    "structured": {
+      "intent": "investigate-auth-change",
+      "matches": [
+        {
+          "entryId": "module-auth",
+          "score": 0.92,
+          "reasons": ["keyword match", "recently validated", "linked incident"]
+        }
+      ],
+      "suggestedFocusPaths": ["src/auth", ".memory/incidents"]
+    }
+  },
+  "telemetry": {
+    "confidence": 0.87,
+    "exposureLevel": "summary",
+    "dependencies": ["auth-module", "login-incident"],
+    "exposureTrace": ["summary"],
+    "nextCommandHint": "/hippo:forecast"
+  }
+}
+```
+
+## 3. `/hippo:forecast`
+
+### 目标
+
+在执行前给出最小执行路径、验证点与风险预测。
+
+### 输入草案
+
+```ts
+{
+  taskDescription: string;
+  constraints: string[];
+  recallSnapshot?: string[];
+  riskProfile?: "low" | "medium" | "high";
+  dependencies?: string[];
+}
+```
+
+### 默认读取边界
+
+- recall 摘要结果
+- 规则层约束
+- 已知 incidents / decisions 摘要
+
+### 默认写入边界
+
+- 不写长期层
+- 可写入会话级预测结果，供 reflect 对比
+
+### 输出重点
+
+- 建议步骤
+- 每一步的验证方式
+- 风险等级
+- 是否需要先做额外 recall
+
+## 4. `/hippo:reflect`
+
+### 目标
+
+回放执行路径，识别偏差、有效判断和误导信号。
+
+### 输入草案
+
+```ts
+{
+  sessionEvents: string[];
+  outcome: string;
+  anomalies?: string[];
+  lessons?: string[];
+  timeRange?: string;
+}
+```
+
+### 默认读取边界
+
+- forecast 结果
+- 会话事件
+- 相关 episodic 记录
+
+### 默认写入边界
+
+- `.memory/episodic/`
+- 长期知识候选摘要
+
+### 输出重点
+
+- 原计划与实际偏差
+- 正确判断依据
+- 误导线索
+- 可复用经验
+
+## 5. `/hippo:sleep`
+
+### 目标
+
+将当前任务压缩成更高信号的记忆候选，为后续 deep-sleep 做准备。
+
+### 输入草案
+
+```ts
+{
+  summary: string;
+  touchedFiles: string[];
+  validation: string[];
+  tags?: string[];
+  exposureLevel?: "summary" | "focused" | "full";
+}
+```
+
+### 默认读取边界
+
+- reflect 结果
+- 当前任务的 episodic 记录
+- 项目规则层与相关 memory 摘要
+
+### 默认写入边界
+
+- `.memory/episodic/`
+- 候选 decision / pattern / incident 摘要
+
+### 输出重点
+
+- 是否值得晋升为长期知识
+- 候选层归属
+- 需要在后续 `deep-sleep` 中确认的内容
+
+## 6. 扩展命令
+
+以下命令在本阶段只保留协议与语义，不实现运行时：
+
+### `/hippo:associate`
+
+在 recall 结果基础上做关系扩散，寻找关联决策、事故与模式。
+
+### `/hippo:active-recall`
+
+在大范围修改、迁移或设计前，强制执行一次更主动的 recall。
+
+### `/hippo:deep-sleep`
+
+把已验证的候选知识沉淀到长期层，并同步更新 graph。
+
+### `/hippo:project-onboard`
+
+建立或刷新项目画像、当前焦点与模块地图。
+
+### `/hippo:prune`
+
+清理重复、过时、低价值记忆。
+
+### `/hippo:status`
+
+查看当前记忆系统的健康状态、覆盖度和待处理候选。
+
+## 7. 技能映射约定
+
+命令协议是共享抽象，宿主可通过 skills / hooks 映射这些命令。
+
+映射约束：
+
+- Claude 侧从 `.claude/skills/hippo/` 与 `.claude/hooks/` 承接
+- Codex 侧从 `.codex/skills/hippo/` 与 `.codex/hooks/` 承接
+- 不允许在宿主侧重新定义新的命令语义
+
+## 8. 渐进式暴露规则
+
+- `summary`：默认层，仅暴露摘要、关键词和高信号引用
+- `focused`：当焦点路径明确时展开相关模块和附近关系
+- `full`：仅在需要深挖特定记忆时使用
+
+每次命令都应在 `telemetry` 中记录：
+
+- 当前暴露层
+- 暴露轨迹
+- 依赖项
+- 建议的下一条命令

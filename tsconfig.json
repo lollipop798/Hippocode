@@ -1,0 +1,50 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": [
+      "ES2022"
+    ],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "verbatimModuleSyntax": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "ignoreDeprecations": "6.0",
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "composite": true,
+    "incremental": true,
+    "tsBuildInfoFile": "./tsconfig.tsbuildinfo",
+    "baseUrl": ".",
+    "paths": {
+      "@hippocode/core": [
+        "src/core/index.ts"
+      ],
+      "@hippocode/core/*": [
+        "src/core/*"
+      ],
+      "@hippocode/adapters": [
+        "src/adapters/index.ts"
+      ],
+      "@hippocode/adapters/*": [
+        "src/adapters/*"
+      ],
+      "@hippocode/cli": [
+        "src/cli/index.ts"
+      ],
+      "@hippocode/cli/*": [
+        "src/cli/*"
+      ],
+      "@hippocode/utils/*": [
+        "src/utils/*"
+      ]
+    }
+  },
+  "include": [
+    "src/**/*.ts"
+  ]
+}

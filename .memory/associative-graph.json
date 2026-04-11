@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "updatedAt": "2026-04-11T12:00:00.000Z",
+  "updatedAt": "2026-04-11T16:20:00.000Z",
   "nodes": [
     {
       "id": "project-profile",
@@ -31,6 +31,94 @@
       "layer": "project",
       "weight": 0.84,
       "confidence": 0.8
+    },
+    {
+      "id": "entity:hippo-runtime",
+      "type": "module",
+      "title": "Hippo Runtime",
+      "summary": "命令编排入口，负责统一 envelope 与 telemetry 聚合。",
+      "keywords": [
+        "runtime",
+        "command",
+        "envelope",
+        "telemetry"
+      ],
+      "layer": "module",
+      "weight": 0.87,
+      "confidence": 0.83
+    },
+    {
+      "id": "entity:recall-engine",
+      "type": "module",
+      "title": "Recall Engine",
+      "summary": "负责候选抽取、有限图扩散、排序与摘要压缩。",
+      "keywords": [
+        "recall",
+        "ranking",
+        "graph",
+        "compression"
+      ],
+      "layer": "module",
+      "weight": 0.89,
+      "confidence": 0.84
+    },
+    {
+      "id": "decision:D-2026-04-11-001",
+      "type": "decision",
+      "title": "Summary-First Recall Boundary",
+      "summary": "Recall 默认 summary 输出，按意图与 focus path 升级到 focused/full。",
+      "keywords": [
+        "decision",
+        "recall",
+        "exposure"
+      ],
+      "layer": "decision",
+      "weight": 0.86,
+      "confidence": 0.86
+    },
+    {
+      "id": "incident:I-2026-04-11-001",
+      "type": "incident",
+      "title": "Memory Store Init Recursion",
+      "summary": "fresh memory root 初始化时出现 ensure/writeGraph 递归阻塞。",
+      "keywords": [
+        "incident",
+        "runtime",
+        "memory-store",
+        "recursion"
+      ],
+      "layer": "incident",
+      "weight": 0.82,
+      "confidence": 0.9
+    },
+    {
+      "id": "pattern:P-2026-04-11-001",
+      "type": "pattern",
+      "title": "Progressive Exposure Summary-First",
+      "summary": "统一输出三层暴露策略，默认 summary，按需升级。",
+      "keywords": [
+        "pattern",
+        "progressive-exposure",
+        "recall"
+      ],
+      "layer": "pattern",
+      "weight": 0.8,
+      "confidence": 0.84
+    },
+    {
+      "id": "module:M-2026-04-11-001",
+      "type": "module",
+      "title": "Core Runtime Recall Boundary",
+      "summary": "runtime 与 recall-engine 通过类型协议解耦，职责边界明确。",
+      "keywords": [
+        "module",
+        "runtime",
+        "recall-engine",
+        "boundary"
+      ],
+      "layer": "module",
+      "weight": 0.85,
+      "confidence": 0.85
     }
   ],
   "edges": [
@@ -47,6 +135,76 @@
       "type": "depends_on",
       "weight": 0.66,
       "reason": "当前工作优先级依赖项目画像与阶段目标"
+    },
+    {
+      "from": "current-focus",
+      "to": "entity:hippo-runtime",
+      "type": "related_to",
+      "weight": 0.78,
+      "reason": "当前迭代聚焦 runtime 稳定性和命令输出一致性"
+    },
+    {
+      "from": "current-focus",
+      "to": "entity:recall-engine",
+      "type": "related_to",
+      "weight": 0.8,
+      "reason": "当前迭代聚焦 recall 排序与暴露升级策略"
+    },
+    {
+      "from": "decision:D-2026-04-11-001",
+      "to": "entity:recall-engine",
+      "type": "constrains",
+      "weight": 0.9,
+      "reason": "限制 recall 默认暴露层级，优先 summary 输出"
+    },
+    {
+      "from": "decision:D-2026-04-11-001",
+      "to": "entity:hippo-runtime",
+      "type": "constrains",
+      "weight": 0.84,
+      "reason": "runtime 必须维持 summary-first 的命令协议语义"
+    },
+    {
+      "from": "pattern:P-2026-04-11-001",
+      "to": "entity:recall-engine",
+      "type": "applies_to",
+      "weight": 0.83,
+      "reason": "渐进式暴露模式直接用于 recall 结果压缩"
+    },
+    {
+      "from": "module:M-2026-04-11-001",
+      "to": "entity:hippo-runtime",
+      "type": "describes",
+      "weight": 0.88,
+      "reason": "模块条目定义 runtime 的职责边界"
+    },
+    {
+      "from": "module:M-2026-04-11-001",
+      "to": "entity:recall-engine",
+      "type": "depends_on",
+      "weight": 0.79,
+      "reason": "runtime 的 recall 路径依赖 recall-engine 的候选排序能力"
+    },
+    {
+      "from": "incident:I-2026-04-11-001",
+      "to": "entity:hippo-runtime",
+      "type": "risks",
+      "weight": 0.82,
+      "reason": "初始化递归会阻断 sleep 与首次写入链路"
+    },
+    {
+      "from": "incident:I-2026-04-11-001",
+      "to": "module:M-2026-04-11-001",
+      "type": "related_to",
+      "weight": 0.76,
+      "reason": "事故定位到 runtime 与 memory-store 交界处"
+    },
+    {
+      "from": "pattern:P-2026-04-11-001",
+      "to": "incident:I-2026-04-11-001",
+      "type": "mitigates",
+      "weight": 0.67,
+      "reason": "严格的分层与暴露策略有助于降低初始化回归扩散范围"
     }
   ]
 }

@@ -38,6 +38,8 @@ Hippocode 从一开始就按可发布的 TypeScript npm package 组织。
 - 核心类型
 - 文件型 memory store
 - summary-first recall / forecast / reflect / sleep 最小运行时
+- smoke test 脚本与已构建产物回归入口
+- `.memory` 长期层基线样例与 graph 基线关系
 - Claude / Codex host adapter descriptor
 - 命令协议文档
 - 记忆模型文档
@@ -89,6 +91,8 @@ Hippocode 从一开始就按可发布的 TypeScript npm package 组织。
 
 负责保存项目画像、决策、事故、模式、模块知识与情景记忆。
 
+当前仓库已经在长期层目录中补入最小样例条目，既作为 recall baseline，也作为后续 schema 校验与 fixture 测试的输入样本。
+
 ### 4.5 联想召回层
 
 载体：
@@ -97,6 +101,8 @@ Hippocode 从一开始就按可发布的 TypeScript npm package 组织。
 - `RecallPipelineConfig`
 
 负责实体抽取、关系扩散、启发式排序与渐进式暴露。
+
+当前 graph 仍保持文件型快照，不做重型扩散执行器；长期层样例条目与核心 runtime 实体之间的基线关系，作为 recall engine 的验证输入存在。
 
 ### 4.6 睡眠整合层
 
@@ -120,6 +126,8 @@ Recall engine 在当前阶段已实现最小运行时，仍保持轻量启发式
    输出高信号摘要、引用与下一步建议。
 7. 统一包装
    返回 `status`、`payload`、`telemetry`。
+
+当前仓库已经用 `scripts/smoke-test.mjs` 固化了 recall 与 sleep 的最小 happy path，作为 Phase 2 的低成本稳定性护栏。
 
 ## 6. 渐进式暴露
 

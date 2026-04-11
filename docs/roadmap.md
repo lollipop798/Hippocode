@@ -38,6 +38,8 @@
 - graph 读写入口
 - recall / forecast / reflect / sleep 最小运行时
 - Claude / Codex host adapter descriptor
+- `scripts/smoke-test.mjs` 最小回归脚本
+- `.memory` 长期层基线样例与 graph 基线关系
 
 建议 issue：
 
@@ -94,6 +96,7 @@
 
 - `.memory` 文件读写与 schema 对齐
 - recall pipeline 与排序
+- recall / forecast / reflect / sleep 的 fixture 与回归脚本扩展
 - sleep / deep-sleep 候选晋升规则
 - Claude / Codex host adapter 具体化
 - CLI 初始化器

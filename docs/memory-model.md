@@ -66,6 +66,8 @@ MVP 阶段只使用文件型存储，不引入图数据库。
 
 保存联想召回图谱的轻量文件型快照。
 
+当前仓库已经补入 `decisions`、`incidents`、`patterns`、`modules` 的最小样例条目，并在 graph 快照里建立与 runtime / recall 相关的基线节点和关系，供 recall pipeline 与 smoke test 使用。
+
 ## 3. 最小字段模型
 
 本阶段的 schema 以 TypeScript 类型为准，运行时校验留到后续。
@@ -216,6 +218,8 @@ Recall engine 默认遵循以下顺序：
 - 证据或引用
 - 创建时间
 - 最近验证时间
+
+当前长期层样例条目已按这套字段草案组织，可直接作为后续 schema validator、fixture test 与 host adapter 演示的初始样本。
 
 ## 10. 当前阶段边界
 

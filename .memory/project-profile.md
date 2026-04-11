@@ -1,8 +1,13 @@
 # Project Profile
 
 - 项目：Hippocode
-- 定位：面向开发型 Agent 的项目级记忆框架
-- 当前阶段：Phase 1 初始化
+- 定位：面向 Claude Code、Codex CLI 等开发型 Agent 的项目级记忆框架
+- 当前阶段：Phase 2 MVP
+- 已落地能力：
+  - TypeScript npm package-first 结构
+  - `.memory` 文件型 store 与 `associative-graph.json` 快照
+  - summary-first recall / forecast / reflect / sleep 最小运行时
+  - Claude / Codex host adapter descriptor
 - 核心关注：
   - 项目级记忆
   - 联想召回
@@ -12,4 +17,9 @@
   - package-first
   - TypeScript only
   - file-based MVP
+  - summary-first exposure
   - 共享抽象与宿主实现分离
+- 当前风险：
+  - recall 仍主要依赖轻量 token/entity 启发式
+  - graph 仍是手工维护的轻量快照
+  - host hooks 仍未完成真实自动化 wiring

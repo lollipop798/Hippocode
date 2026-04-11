@@ -114,22 +114,23 @@ Hippocode 的命令统一使用 `/hippo:` 命名空间。
 
 ## 7. 当前阶段允许与禁止
 
-第一阶段允许：
+Phase 1 的仓库初始化已经完成，当前进入 Phase 2 MVP。
 
-- 初始化 package 结构
-- 定义类型
-- 编写文档
-- 建立 `.memory`、`.claude`、`.codex` 目录协议
-- 建立构建与导出入口
+当前阶段允许：
 
-第一阶段暂不实现：
+- 继续扩展 package-first 结构与导出入口
+- 实现文件型 memory store
+- 实现 summary-first 的 recall / forecast / reflect / sleep 最小运行时
+- 实现 Claude / Codex 的 host adapter descriptor
+- 继续完善 `.memory`、`.claude`、`.codex` 的协议与说明
 
-- recall pipeline 运行时
-- graph 扩散与排序实现
-- sleep / deep-sleep 执行器
-- CLI 真实命令执行
+当前阶段暂不实现：
+
+- deep-sleep 晋升执行器
 - schema runtime validator
-- 真实 hook 自动化
+- 真实 hook 自动化 wiring
+- 完整 graph 自动构建与复杂扩散排序
+- 独立 CLI 可执行程序与脚手架命令
 
 ## 8. 记忆写入规则
 

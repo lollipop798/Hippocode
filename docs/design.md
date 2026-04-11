@@ -32,22 +32,24 @@ Hippocode 从一开始就按可发布的 TypeScript npm package 组织。
 
 ## 3. 当前 MVP 范围
 
-本轮只落以下内容：
+当前 Phase 2 MVP 已落以下内容：
 
 - package 与 build 骨架
 - 核心类型
+- 文件型 memory store
+- summary-first recall / forecast / reflect / sleep 最小运行时
+- Claude / Codex host adapter descriptor
 - 命令协议文档
 - 记忆模型文档
 - `.memory`、`.claude`、`.codex` 结构
 
 本轮暂不落：
 
-- recall engine 运行时
-- graph 扩散与排序实现
-- sleep / deep-sleep 处理器
 - schema runtime validator
+- deep-sleep 晋升执行器
+- 完整 graph 自动构建与复杂扩散排序
 - CLI 可执行命令
-- 自动化 hooks
+- 自动化 hooks wiring
 
 ## 4. 六层架构
 
@@ -102,7 +104,7 @@ Hippocode 从一开始就按可发布的 TypeScript npm package 组织。
 
 ## 5. Recall Engine 流程
 
-Recall engine 在本轮只定义协议，不实现运行时代码。统一流程如下：
+Recall engine 在当前阶段已实现最小运行时，仍保持轻量启发式与 summary-first 原则。统一流程如下：
 
 1. 输入解析
    从用户任务或宿主生命周期事件中提取意图、约束、focus path。
@@ -166,7 +168,7 @@ Hippocode 的默认暴露策略固定为三层：
 
 ## 9. 非目标
 
-当前阶段不追求：
+当前阶段仍不追求：
 
 - 复杂自动化编排
 - 图数据库

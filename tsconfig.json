@@ -6,6 +6,9 @@
     ],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "types": [
+      "node"
+    ],
     "strict": true,
     "verbatimModuleSyntax": true,
     "resolveJsonModule": true,
@@ -13,7 +16,7 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "ignoreDeprecations": "6.0",
+    "ignoreDeprecations": "5.0",
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "composite": true,

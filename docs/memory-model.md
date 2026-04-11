@@ -207,7 +207,7 @@ Recall engine 默认遵循以下顺序：
 
 ## 9. 模板建议
 
-虽然本轮不实现模板渲染器，但目录内文件建议统一包含：
+尽管模板渲染器仍留待后续阶段，本阶段已经落地文件型目录协议、graph 快照与 recall pipeline，因此目录内文件现在就可以先按以下字段草案组织：
 
 - 标题
 - 摘要
@@ -219,16 +219,18 @@ Recall engine 默认遵循以下顺序：
 
 ## 10. 当前阶段边界
 
-本轮已经确定：
+当前已经确定并落地：
 
 - 目录协议
 - 类型边界
 - graph 最小 schema
 - recall / reflect / sleep 的读写边界
+- 文件型 memory store 的读写入口
+- episodic 写入与 graph 文件 IO
 
 本轮尚未实现：
 
 - schema runtime validator
 - graph 自动生成器
-- recall engine
 - deep-sleep 晋升机制
+- 复杂 graph 扩散与排序策略

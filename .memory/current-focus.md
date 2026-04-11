@@ -1,6 +1,7 @@
 # Current Focus
 
-- 完成仓库第一阶段初始化
-- 稳定 `src/core/types.ts` 协议边界
-- 明确 `.memory`、`.claude`、`.codex` 的骨架
-- 维持 MVP 范围轻量，不提前实现复杂运行时
+- 巩固 Phase 2 MVP 的最小运行时稳定性
+- 提升 recall 的 intent 解析与 `focused` / `full` 升级策略
+- 补齐 `.memory` 示例条目与 graph 基线数据
+- 为 forecast / reflect / sleep 建立更稳定的 smoke test 与 fixtures
+- 继续保持宿主适配轻量，不提前引入重型自动化 wiring

@@ -1,6 +1,52 @@
 {
   "version": "1",
-  "updatedAt": "2026-04-11T00:00:00.000Z",
-  "nodes": [],
-  "edges": []
+  "updatedAt": "2026-04-11T12:00:00.000Z",
+  "nodes": [
+    {
+      "id": "project-profile",
+      "type": "project",
+      "title": "Project Profile",
+      "summary": "Hippocode 的项目画像、长期约束与当前 Phase 2 MVP 能力。",
+      "keywords": [
+        "hippocode",
+        "phase-2",
+        "runtime",
+        "memory"
+      ],
+      "layer": "project",
+      "weight": 0.92,
+      "confidence": 0.86
+    },
+    {
+      "id": "current-focus",
+      "type": "project",
+      "title": "Current Focus",
+      "summary": "当前迭代聚焦 recall/runtime 稳定性、graph 基线与宿主映射边界。",
+      "keywords": [
+        "focus",
+        "recall",
+        "runtime",
+        "graph"
+      ],
+      "layer": "project",
+      "weight": 0.84,
+      "confidence": 0.8
+    }
+  ],
+  "edges": [
+    {
+      "from": "project-profile",
+      "to": "current-focus",
+      "type": "related_to",
+      "weight": 0.78,
+      "reason": "当前焦点直接继承项目阶段、约束与 MVP 边界"
+    },
+    {
+      "from": "current-focus",
+      "to": "project-profile",
+      "type": "depends_on",
+      "weight": 0.66,
+      "reason": "当前工作优先级依赖项目画像与阶段目标"
+    }
+  ]
 }

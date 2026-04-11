@@ -4,6 +4,8 @@
 
 所有命令统一使用 `/hippo:` 命名空间，避免与宿主内置命令冲突。
 
+当前仓库已经为 `/hippo:recall`、`/hippo:forecast`、`/hippo:reflect`、`/hippo:sleep` 提供可调用的最小 library runtime；扩展命令目前只保留协议语义与宿主映射边界，执行器留待后续阶段实现。
+
 统一输出结构：
 
 ```ts
@@ -42,11 +44,12 @@
 ```ts
 {
   prompt: string;
-  intent: string;
+  intent?: string;
   scope: "task" | "module" | "project";
   focusPath?: string;
   filters?: string[];
   exposureLevel?: "summary" | "focused" | "full";
+  limit?: number;
 }
 ```
 
@@ -80,9 +83,17 @@
       "intent": "investigate-auth-change",
       "matches": [
         {
-          "entryId": "module-auth",
+          "entry": {
+            "id": "module-auth",
+            "layer": "module",
+            "path": "modules/auth.md",
+            "title": "Auth Module",
+            "summary": "认证模块边界、约束与近期风险摘要。",
+            "keywords": ["auth", "login", "token"]
+          },
           "score": 0.92,
-          "reasons": ["keyword match", "recently validated", "linked incident"]
+          "reasons": ["keyword match", "recently validated", "linked incident"],
+          "linkedNodeIds": ["incident-login-regression"]
         }
       ],
       "suggestedFocusPaths": ["src/auth", ".memory/incidents"]
@@ -110,9 +121,10 @@
 {
   taskDescription: string;
   constraints: string[];
-  recallSnapshot?: string[];
+  recallSnapshot?: RecallResult;
   riskProfile?: "low" | "medium" | "high";
   dependencies?: string[];
+  targetExposure?: "summary" | "focused" | "full";
 }
 ```
 
@@ -149,6 +161,7 @@
   anomalies?: string[];
   lessons?: string[];
   timeRange?: string;
+  priorForecast?: ForecastPlan;
 }
 ```
 
@@ -185,6 +198,7 @@
   validation: string[];
   tags?: string[];
   exposureLevel?: "summary" | "focused" | "full";
+  signalStrength?: "low" | "medium" | "high";
 }
 ```
 

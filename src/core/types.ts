@@ -29,7 +29,20 @@ export const EXPOSURE_LEVELS = ["summary", "focused", "full"] as const;
 
 export type ExposureLevel = (typeof EXPOSURE_LEVELS)[number];
 
+export const HOST_LIFECYCLE_EVENTS = [
+  "sessionStart",
+  "userInput",
+  "preTool",
+  "postTool",
+  "sessionEnd"
+] as const;
+
+export type HostLifecycleEvent = (typeof HOST_LIFECYCLE_EVENTS)[number];
+
 export type CommandStatus = "ok" | "partial" | "error";
+export type RecallScope = "task" | "module" | "project";
+export type RiskLevel = "low" | "medium" | "high";
+export type SleepSignalStrength = "low" | "medium" | "high";
 
 export interface EntityMention {
   id: string;
@@ -58,6 +71,8 @@ export interface MemoryEntry {
   keywords: string[];
   scope: string;
   exposure: ExposureLevel;
+  sourcePath?: string;
+  content?: string;
   tags?: string[];
   references?: string[];
   createdAt: string;
@@ -141,6 +156,7 @@ export interface RecallTelemetry {
 export interface RecallResult {
   command: "/hippo:recall" | "/hippo:associate" | "/hippo:active-recall";
   intent: string;
+  focusPath?: string;
   entities: EntityMention[];
   matches: RecallMatch[];
   risks: string[];
@@ -151,7 +167,7 @@ export interface ForecastStep {
   title: string;
   rationale: string;
   validation: string[];
-  riskLevel: "low" | "medium" | "high";
+  riskLevel: RiskLevel;
 }
 
 export interface ForecastPlan {
@@ -159,6 +175,7 @@ export interface ForecastPlan {
   goal: string;
   assumptions: string[];
   constraints: string[];
+  recommendedFocusPath?: string;
   steps: ForecastStep[];
   followUpCommands: HippoCommandName[];
 }
@@ -170,6 +187,8 @@ export interface ReflectInsight {
   confirmedSignals: string[];
   misleadingSignals: string[];
   reusableLessons: string[];
+  candidateLayers?: MemoryLayer[];
+  episodicEntryId?: string;
 }
 
 export interface SleepEntry {
@@ -179,6 +198,7 @@ export interface SleepEntry {
   validation: string[];
   candidateLayers: MemoryLayer[];
   promoteToLongTerm: boolean;
+  episodicEntryId?: string;
 }
 
 export interface CommandPayload<TStructured> {
@@ -198,4 +218,56 @@ export interface CommandEnvelope<TStructured> {
   status: CommandStatus;
   payload: CommandPayload<TStructured>;
   telemetry: CommandTelemetry;
+}
+
+export interface RecallCommandInput {
+  prompt: string;
+  intent?: string;
+  scope: RecallScope;
+  focusPath?: string;
+  filters?: string[];
+  exposureLevel?: ExposureLevel;
+  limit?: number;
+}
+
+export interface ForecastCommandInput {
+  taskDescription: string;
+  constraints: string[];
+  recallSnapshot?: RecallResult;
+  riskProfile?: RiskLevel;
+  dependencies?: string[];
+  targetExposure?: ExposureLevel;
+}
+
+export interface ReflectCommandInput {
+  sessionEvents: string[];
+  outcome: string;
+  anomalies?: string[];
+  lessons?: string[];
+  timeRange?: string;
+  priorForecast?: ForecastPlan;
+}
+
+export interface SleepCommandInput {
+  summary: string;
+  touchedFiles: string[];
+  validation: string[];
+  tags?: string[];
+  exposureLevel?: ExposureLevel;
+  signalStrength?: SleepSignalStrength;
+}
+
+export interface MemoryStoreQuery {
+  layers?: MemoryLayer[];
+  keywords?: string[];
+  exposureLevel?: ExposureLevel;
+  limit?: number;
+  focusPath?: string;
+  includeArchived?: boolean;
+}
+
+export interface MemoryWriteResult {
+  entry: MemoryEntry;
+  path: string;
+  created: boolean;
 }

@@ -2,6 +2,8 @@
 
 ## Phase 1：仓库初始化与协议稳定
 
+状态：已完成
+
 目标：
 
 - 建立 TypeScript npm package 骨架
@@ -22,19 +24,28 @@
 
 ## Phase 2：文件型记忆读写与 recall MVP
 
+状态：进行中
+
 目标：
 
 - 读取 `.memory` 摘要层
 - 建立最小 recall pipeline
 - 产出可排序的 recall 结果
 
+当前已落地：
+
+- `.memory` 文件型 store
+- graph 读写入口
+- recall / forecast / reflect / sleep 最小运行时
+- Claude / Codex host adapter descriptor
+
 建议 issue：
 
-1. 实现 `.memory` 读取器
-2. 实现 memory entry 序列化与反序列化
-3. 实现 recall entity extraction
-4. 实现 recall ranking MVP
-5. 实现 recall summary 压缩器
+1. 为 `.memory` store 增加 runtime schema 校验
+2. 为 recall 增加更稳定的 intent 解析与 focused/full 升级策略
+3. 为 graph 增加自动 upsert 与 pruning
+4. 为 recall 增加 fixture 测试与评分基准
+5. 为命令运行时增加真实 CLI / host 接口适配
 
 ## Phase 3：reflect / sleep / deep-sleep
 

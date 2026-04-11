@@ -2,7 +2,7 @@
 
 Hippocode 是一套受海马体启发的编码代理记忆框架，面向 Claude Code、Codex CLI 以及类似的开发型 Agent 环境。它关注的不是“记住更多”，而是“在合适的时机想起正确的项目知识”。
 
-当前仓库已经按可发布的 TypeScript npm package 形态初始化，MVP 阶段优先落地以下能力：
+当前仓库已经按可发布的 TypeScript npm package 形态初始化，并开始进入 Phase 2 MVP，优先落地以下能力：
 
 - 项目级记忆
 - 主动记忆与联想召回
@@ -12,24 +12,26 @@ Hippocode 是一套受海马体启发的编码代理记忆框架，面向 Claude
 
 ## 当前阶段目标
 
-本轮是第一阶段初始化，不实现完整运行时。重点是把工程骨架、协议类型、文档和目录约束稳定下来，方便后续并行开发。
+当前阶段重点是把“可发布的工程骨架”推进为“可调用的最小记忆运行时”，同时继续保持协议和目录结构稳定。
 
 已落地的内容包括：
 
 - TypeScript npm package 基础配置
 - `src/core`、`src/adapters`、`src/cli`、`src/utils` 分层
 - 核心命令与记忆协议类型
+- 文件型 `.memory` store 与 graph 读写入口
+- summary-first 的 recall / forecast / reflect / sleep 最小运行时
+- Claude / Codex 的 host adapter descriptor
 - `.memory`、`.claude`、`.codex` 的基础目录骨架
 - 面向开发者与 Agent 的主文档
 
 本轮未落地的内容包括：
 
-- recall pipeline 真正实现
-- graph 扩散与排序实现
-- sleep / deep-sleep 执行器
+- deep-sleep 晋升执行器
+- schema runtime validator
 - 真实 hook 自动化
-- CLI 命令运行时
-- GitHub 私有仓库创建与推送
+- 完整 graph 自动构建与复杂扩散排序
+- 独立 CLI 可执行程序
 
 ## 仓库结构
 
@@ -111,10 +113,10 @@ npm run clean
 未来会在不打破核心协议的前提下逐步补齐：
 
 - schema 校验
-- 文件型存储读写实现
-- recall engine
-- host hooks
+- deep-sleep 与候选晋升
+- host hooks wiring
 - CLI/scaffold
+- graph 自动生成与 pruning
 
 ## 关键文档
 

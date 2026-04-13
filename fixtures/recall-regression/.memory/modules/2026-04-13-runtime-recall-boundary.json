@@ -1,0 +1,14 @@
+{
+  "id": "module:M-2026-04-13-001",
+  "layer": "module",
+  "title": "Runtime and Recall Boundary",
+  "summary": "runtime 负责命令编排，recall-engine 负责召回排序与压缩。",
+  "keywords": ["module", "runtime", "recall-engine", "boundary"],
+  "scope": "core",
+  "exposure": "summary",
+  "content": "模块条目用于验证 focusPath 命中 src/core/runtime.ts 时的升级行为。",
+  "references": ["src/core/runtime.ts", "src/core/recall-engine.ts"],
+  "createdAt": "2026-04-13T10:02:00.000Z",
+  "updatedAt": "2026-04-13T10:02:00.000Z",
+  "confidence": 0.87
+}

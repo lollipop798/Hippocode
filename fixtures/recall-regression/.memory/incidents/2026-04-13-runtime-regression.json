@@ -1,0 +1,14 @@
+{
+  "id": "incident:I-2026-04-13-001",
+  "layer": "incident",
+  "title": "Runtime Recall Regression Incident",
+  "summary": "曾出现 recall 回归导致风险条目被遗漏，需要 incident 优先保留。",
+  "keywords": ["incident", "regression", "runtime", "risk", "recall"],
+  "scope": "runtime-recall",
+  "exposure": "focused",
+  "content": "这个 incident 用于稳定触发 incident priority 打分分支。",
+  "references": ["src/core/runtime.ts", "src/core/recall-engine.ts"],
+  "createdAt": "2026-04-13T10:01:00.000Z",
+  "updatedAt": "2026-04-13T10:01:00.000Z",
+  "confidence": 0.94
+}

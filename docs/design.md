@@ -39,6 +39,7 @@ Hippocode 从一开始就按可发布的 TypeScript npm package 组织。
 - 文件型 memory store
 - summary-first recall / forecast / reflect / sleep 最小运行时
 - smoke test 脚本与已构建产物回归入口
+- recall regression fixture 与 exposureTrace / ranking 回归脚本
 - `.memory` 长期层基线样例与 graph 基线关系
 - Claude / Codex host adapter descriptor
 - 命令协议文档
@@ -128,6 +129,7 @@ Recall engine 在当前阶段已实现最小运行时，仍保持轻量启发式
    返回 `status`、`payload`、`telemetry`。
 
 当前仓库已经用 `scripts/smoke-test.mjs` 固化了 recall 与 sleep 的最小 happy path，作为 Phase 2 的低成本稳定性护栏。
+同时，`fixtures/recall-regression/.memory` 与 `scripts/regression-recall-exposure.mjs` 负责稳定验证 recall 的排序方向与 `exposureTrace` 语义，避免后续启发式调整悄悄破坏默认行为。
 
 ## 6. 渐进式暴露
 

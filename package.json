@@ -38,7 +38,8 @@
     "build": "tsc --build tsconfig.build.json",
     "clean": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true }); rmSync('tsconfig.tsbuildinfo', { force: true }); rmSync('tsconfig.build.tsbuildinfo', { force: true });\"",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "smoke": "node ./scripts/smoke-test.mjs"
+    "smoke": "node ./scripts/smoke-test.mjs",
+    "regression:recall": "node ./scripts/regression-recall-exposure.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.10.1",

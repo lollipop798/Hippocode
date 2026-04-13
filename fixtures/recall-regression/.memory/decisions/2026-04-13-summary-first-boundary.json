@@ -1,0 +1,14 @@
+{
+  "id": "decision:D-2026-04-13-001",
+  "layer": "decision",
+  "title": "Recall Summary-First Boundary",
+  "summary": "默认 summary 输出，只有 focusPath 或显式 exposure 才升级。",
+  "keywords": ["decision", "recall", "summary", "focused", "full", "exposure"],
+  "scope": "recall-engine",
+  "exposure": "summary",
+  "content": "此条目用于验证默认 summary-first 行为。",
+  "references": ["src/core/recall-engine.ts", "docs/commands.md"],
+  "createdAt": "2026-04-13T10:00:00.000Z",
+  "updatedAt": "2026-04-13T10:00:00.000Z",
+  "confidence": 0.86
+}

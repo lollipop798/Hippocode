@@ -1,0 +1,103 @@
+{
+  "version": "1",
+  "updatedAt": "2026-04-13T10:05:00.000Z",
+  "nodes": [
+    {
+      "id": "project-profile",
+      "type": "project",
+      "title": "Project Profile",
+      "summary": "回归 fixture 的总体目标与约束。",
+      "keywords": ["fixture", "recall", "summary-first"],
+      "layer": "project",
+      "weight": 0.8,
+      "confidence": 0.84
+    },
+    {
+      "id": "current-focus",
+      "type": "project",
+      "title": "Current Focus",
+      "summary": "聚焦 incident 优先与暴露升级回归。",
+      "keywords": ["focus", "incident", "exposure"],
+      "layer": "project",
+      "weight": 0.83,
+      "confidence": 0.86
+    },
+    {
+      "id": "decision:D-2026-04-13-001",
+      "type": "decision",
+      "title": "Recall Summary-First Boundary",
+      "summary": "默认 summary，按触发条件升级。",
+      "keywords": ["decision", "summary", "focused", "full"],
+      "layer": "decision",
+      "weight": 0.84,
+      "confidence": 0.86
+    },
+    {
+      "id": "incident:I-2026-04-13-001",
+      "type": "incident",
+      "title": "Runtime Recall Regression Incident",
+      "summary": "事故条目需要被稳定优先保留。",
+      "keywords": ["incident", "regression", "runtime", "risk"],
+      "layer": "incident",
+      "weight": 0.96,
+      "confidence": 0.95
+    },
+    {
+      "id": "module:M-2026-04-13-001",
+      "type": "module",
+      "title": "Runtime and Recall Boundary",
+      "summary": "runtime 与 recall-engine 的职责边界。",
+      "keywords": ["module", "runtime", "recall-engine", "boundary"],
+      "layer": "module",
+      "weight": 0.78,
+      "confidence": 0.84
+    },
+    {
+      "id": "pattern:P-2026-04-13-001",
+      "type": "pattern",
+      "title": "Progressive Exposure Pattern",
+      "summary": "summary 到 full 的渐进式暴露策略。",
+      "keywords": ["pattern", "progressive-exposure", "summary", "full"],
+      "layer": "pattern",
+      "weight": 0.8,
+      "confidence": 0.88
+    }
+  ],
+  "edges": [
+    {
+      "from": "project-profile",
+      "to": "current-focus",
+      "type": "related_to",
+      "weight": 0.72,
+      "reason": "当前焦点由项目约束派生"
+    },
+    {
+      "from": "current-focus",
+      "to": "incident:I-2026-04-13-001",
+      "type": "related_to",
+      "weight": 0.92,
+      "reason": "本轮回归以 incident 优先为核心"
+    },
+    {
+      "from": "decision:D-2026-04-13-001",
+      "to": "pattern:P-2026-04-13-001",
+      "type": "constrains",
+      "weight": 0.81,
+      "reason": "决策约束暴露层升级路径"
+    },
+    {
+      "from": "pattern:P-2026-04-13-001",
+      "to": "module:M-2026-04-13-001",
+      "type": "applies_to",
+      "weight": 0.74,
+      "reason": "模块召回遵循暴露模式"
+    },
+    {
+      "from": "incident:I-2026-04-13-001",
+      "to": "module:M-2026-04-13-001",
+      "type": "risks",
+      "weight": 0.93,
+      "reason": "runtime 边界变更会触发 recall 回归风险"
+    }
+  ]
+}

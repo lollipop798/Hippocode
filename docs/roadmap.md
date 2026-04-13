@@ -39,6 +39,7 @@
 - recall / forecast / reflect / sleep 最小运行时
 - Claude / Codex host adapter descriptor
 - `scripts/smoke-test.mjs` 最小回归脚本
+- `fixtures/recall-regression/.memory` 与 `scripts/regression-recall-exposure.mjs`
 - `.memory` 长期层基线样例与 graph 基线关系
 
 建议 issue：

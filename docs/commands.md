@@ -33,6 +33,7 @@
 - `humanReadable` 供开发者或 Agent 阅读
 - `structured` 供程序消费
 - `scripts/smoke-test.mjs` 当前以 `/hippo:recall` 与 `/hippo:sleep` 的最小输入输出合同为基准做回归验证
+- `scripts/regression-recall-exposure.mjs` 当前以固定 fixture 验证 `/hippo:recall` 的排序方向与 `exposureTrace`
 
 ## 2. `/hippo:recall`
 
@@ -271,4 +272,4 @@
 - 依赖项
 - 建议的下一条命令
 
-当前 smoke test 仅覆盖 `summary` 暴露层下的 recall / sleep happy path；`focused`、`full` 与扩展命令仍保留到后续 fixture 与回归测试中。
+当前 smoke test 仅覆盖 `summary` 暴露层下的 recall / sleep happy path；`focused`、`full` 的暴露轨迹与 incident 优先排序由 `regression:recall` 基于固定 fixture 继续验证，扩展命令仍保留到后续阶段。

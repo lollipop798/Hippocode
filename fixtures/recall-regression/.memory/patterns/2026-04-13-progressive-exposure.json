@@ -1,0 +1,14 @@
+{
+  "id": "pattern:P-2026-04-13-001",
+  "layer": "pattern",
+  "title": "Progressive Exposure Pattern",
+  "summary": "暴露层级按 summary -> focused -> full 逐步升级。",
+  "keywords": ["pattern", "progressive-exposure", "summary", "focused", "full"],
+  "scope": "command-protocol",
+  "exposure": "summary",
+  "content": "该模式用于验证 explicit exposure 请求可以进入 full。",
+  "references": ["docs/commands.md", "src/core/recall-engine.ts"],
+  "createdAt": "2026-04-13T10:03:00.000Z",
+  "updatedAt": "2026-04-13T10:03:00.000Z",
+  "confidence": 0.88
+}

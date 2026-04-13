@@ -38,12 +38,14 @@
     "build": "tsc --build tsconfig.build.json",
     "clean": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true }); rmSync('tsconfig.tsbuildinfo', { force: true }); rmSync('tsconfig.build.tsbuildinfo', { force: true });\"",
     "typecheck": "tsc --noEmit -p tsconfig.json",
+    "validate:memory-schema": "node ./scripts/validate-memory-schema.mjs",
     "smoke": "node ./scripts/smoke-test.mjs",
     "regression:recall": "node ./scripts/regression-recall-exposure.mjs",
     "regression:forecast": "node ./scripts/regression-runtime-commands.mjs forecast",
     "regression:reflect": "node ./scripts/regression-runtime-commands.mjs reflect",
     "regression:sleep": "node ./scripts/regression-runtime-commands.mjs sleep",
-    "regression:runtime": "node ./scripts/regression-runtime-commands.mjs all"
+    "regression:runtime": "node ./scripts/regression-runtime-commands.mjs all",
+    "regression:all": "npm run typecheck && npm run build && npm run validate:memory-schema && npm run smoke && npm run regression:recall && npm run regression:runtime"
   },
   "devDependencies": {
     "@types/node": "^22.10.1",

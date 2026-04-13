@@ -3,6 +3,11 @@ import { basename, extname, join, relative } from "node:path";
 
 import { ensureDir, fileExists, writeFileAtomic } from "../utils/fs.js";
 import { slugify, summarizeText, tokenizeText, uniqueStrings } from "../utils/text.js";
+import {
+  assertValidMemoryEntry,
+  assertValidMemoryGraphSnapshot,
+  assertValidWriteEntryInput
+} from "./schema.js";
 import type {
   ExposureLevel,
   MemoryEntry,
@@ -96,14 +101,16 @@ export class FileMemoryStore implements MemoryStore {
     const graphPath = join(this.rootDir, GRAPH_FILE_NAME);
     const content = await readFile(graphPath, "utf8");
     const parsed = JSON.parse(content) as Partial<MemoryGraphSnapshot>;
-
-    return {
+    const snapshot: MemoryGraphSnapshot = {
       version: typeof parsed.version === "string" ? parsed.version : "1",
       updatedAt:
         typeof parsed.updatedAt === "string" ? parsed.updatedAt : this.now().toISOString(),
       nodes: Array.isArray(parsed.nodes) ? parsed.nodes : [],
       edges: Array.isArray(parsed.edges) ? parsed.edges : []
     };
+    assertValidMemoryGraphSnapshot(snapshot, `graph file ${relative(this.rootDir, graphPath)}`);
+
+    return snapshot;
   }
 
   public async writeGraph(snapshot: MemoryGraphSnapshot): Promise<MemoryGraphSnapshot> {
@@ -115,6 +122,7 @@ export class FileMemoryStore implements MemoryStore {
       nodes: snapshot.nodes,
       edges: snapshot.edges
     };
+    assertValidMemoryGraphSnapshot(normalizedSnapshot, "writeGraph input");
 
     const graphPath = join(this.rootDir, GRAPH_FILE_NAME);
     await writeFileAtomic(graphPath, `${JSON.stringify(normalizedSnapshot, null, 2)}\n`);
@@ -124,10 +132,12 @@ export class FileMemoryStore implements MemoryStore {
 
   public async writeEntry(entry: MemoryEntry): Promise<MemoryWriteResult> {
     await this.ensureBaseLayout();
+    assertValidWriteEntryInput(entry, `writeEntry input ${entry.id || entry.title || entry.layer}`);
 
     const path = this.resolveWritePath(entry);
     const created = !(await fileExists(path));
     const normalizedEntry = this.normalizeWritableEntry(entry, relative(this.rootDir, path));
+    assertValidMemoryEntry(normalizedEntry, `normalized entry ${normalizedEntry.id}`);
     const content = path.endsWith(".md")
       ? this.renderMarkdownEntry(normalizedEntry)
       : `${JSON.stringify(normalizedEntry, null, 2)}\n`;
@@ -258,7 +268,7 @@ export class FileMemoryStore implements MemoryStore {
       Array.isArray(parsed.keywords) ? parsed.keywords : tokenizeText(rawContent)
     );
 
-    return {
+    const entry: MemoryEntry = {
       id: this.pickString(parsed.id) ?? fallbackId,
       layer,
       title: this.pickString(parsed.title) ?? this.titleFromId(fallbackId),
@@ -280,6 +290,9 @@ export class FileMemoryStore implements MemoryStore {
       ...(typeof parsed.confidence === "number" ? { confidence: parsed.confidence } : {}),
       ...(this.isRecord(parsed.metadata) ? { metadata: parsed.metadata } : {})
     };
+    assertValidMemoryEntry(entry, `memory entry ${sourcePath}`);
+
+    return entry;
   }
 
   private parseMarkdownEntry(
@@ -301,7 +314,7 @@ export class FileMemoryStore implements MemoryStore {
     const summary = summarizeText(contentLines.join(" "), 200);
     const keywords = this.normalizeKeywords(tokenizeText([title, rawContent].join(" ")));
 
-    return {
+    const entry: MemoryEntry = {
       id: fallbackId,
       layer,
       title,
@@ -319,6 +332,9 @@ export class FileMemoryStore implements MemoryStore {
       createdAt: fileStat.birthtime.toISOString(),
       updatedAt: fileStat.mtime.toISOString()
     };
+    assertValidMemoryEntry(entry, `memory entry ${sourcePath}`);
+
+    return entry;
   }
 
   private filterEntries(entries: MemoryEntry[], query: MemoryStoreQuery): MemoryEntry[] {

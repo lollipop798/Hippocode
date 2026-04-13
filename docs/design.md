@@ -136,6 +136,12 @@ Recall engine 在当前阶段已实现最小运行时，仍保持轻量启发式
 - `reflect` 的偏差识别、candidate layers 判定与 `episodic` 写入
 - `sleep` 的候选层判断、晋升建议与 `deep-sleep` 提示
 
+为了避免文件型 `.memory` 在运行时静默漂移，当前又补入了 `src/core/schema.ts` 与 `scripts/validate-memory-schema.mjs`：
+
+- `schema.ts` 负责校验 memory entry、writeEntry 输入与 associative graph 快照
+- `validate:memory-schema` 负责遍历仓库根 `.memory` 与全部 fixtures
+- `regression:all` 把 `typecheck -> build -> schema -> smoke -> recall -> runtime` 串成统一验收入口
+
 ## 6. 渐进式暴露
 
 Hippocode 的默认暴露策略固定为三层：

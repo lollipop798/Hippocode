@@ -39,9 +39,10 @@
 - recall / forecast / reflect / sleep 最小运行时
 - Claude / Codex host adapter descriptor
 - `scripts/smoke-test.mjs` 最小回归脚本
+- `src/core/schema.ts` 与 `scripts/validate-memory-schema.mjs`
 - `fixtures/recall-regression/.memory` 与 `scripts/regression-recall-exposure.mjs`
 - `fixtures/forecast-regression/.memory`、`fixtures/reflect-regression/.memory`、`fixtures/sleep-regression/.memory`
-- `scripts/regression-runtime-commands.mjs` 与 `regression:forecast|reflect|sleep|runtime`
+- `scripts/regression-runtime-commands.mjs` 与 `regression:forecast|reflect|sleep|runtime|all`
 - `.memory` 长期层基线样例与 graph 基线关系
 
 建议 issue：
@@ -49,8 +50,9 @@
 1. 为 `.memory` store 增加 runtime schema 校验
 2. 为 recall 增加更稳定的 intent 解析与 focused/full 升级策略
 3. 为 graph 增加自动 upsert 与 pruning
-4. 为 recall 增加 fixture 测试与评分基准
-5. 为命令运行时增加真实 CLI / host 接口适配
+4. 为 schema validator 增加更细的错误分类与报告
+5. 为 recall 增加 fixture 测试与评分基准
+6. 为命令运行时增加真实 CLI / host 接口适配
 
 ## Phase 3：reflect / sleep / deep-sleep
 
@@ -62,7 +64,6 @@
 
 建议 issue：
 
-6. 为 runtime regression 增加总入口与统一报告
 7. 扩展 reflect 记录结构与候选层判定
 8. 实现 sleep candidate writer
 9. 实现 deep-sleep promotion policy

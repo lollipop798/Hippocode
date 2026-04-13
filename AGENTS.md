@@ -121,9 +121,11 @@ Phase 1 的仓库初始化已经完成，当前进入 Phase 2 MVP。
 - 继续扩展 package-first 结构与导出入口
 - 实现文件型 memory store
 - 实现 summary-first 的 recall / forecast / reflect / sleep 最小运行时
+- 维护 `src/core/schema.ts` 与 `scripts/validate-memory-schema.mjs`，作为 FileMemoryStore 的最小 runtime schema guard
 - 维护 `scripts/smoke-test.mjs` 作为最小回归验证入口
 - 维护 `fixtures/recall-regression/.memory` 与 `scripts/regression-recall-exposure.mjs`，作为 recall ranking / exposureTrace 的固定回归基线
 - 维护 `fixtures/forecast-regression/.memory`、`fixtures/reflect-regression/.memory`、`fixtures/sleep-regression/.memory` 与 `scripts/regression-runtime-commands.mjs`，作为 forecast / reflect / sleep 的固定回归基线
+- 维护 `regression:all` 作为当前阶段的一键验收入口，串联 schema、smoke 与命令回归
 - 实现 Claude / Codex 的 host adapter descriptor
 - 继续完善 `.memory`、`.claude`、`.codex` 的协议与说明
 - 为 `decisions`、`incidents`、`patterns`、`modules` 维护高信号示例条目，作为 recall 基线样本

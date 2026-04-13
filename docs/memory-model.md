@@ -70,7 +70,7 @@ MVP 阶段只使用文件型存储，不引入图数据库。
 
 ## 3. 最小字段模型
 
-本阶段的 schema 以 TypeScript 类型为准，运行时校验留到后续。
+本阶段的 schema 仍以 TypeScript 类型为主，但已经补入最小 runtime schema guard，用于约束 `.memory` 与 fixtures 的基础合法性。
 
 长期与候选记忆条目至少需要：
 
@@ -90,6 +90,13 @@ MVP 阶段只使用文件型存储，不引入图数据库。
 - `tags`
 - `references`
 - `metadata`
+
+当前 runtime schema guard 至少检查：
+
+- `id`、`layer`、`title`、`summary`、`keywords`、`scope`、`exposure`、`createdAt`
+- `updatedAt`、`confidence`、`tags`、`references`、`metadata` 的基础类型
+- `layer` 与 `exposure` 是否属于共享协议枚举
+- 日期字段是否可被解析为合法 ISO 时间
 
 ## 4. 记忆分层语义
 
@@ -158,6 +165,13 @@ MVP 阶段只使用文件型存储，不引入图数据库。
 - `weight`
 - `reason`
 
+当前 runtime schema guard 会校验：
+
+- `nodes` 与 `edges` 是否为数组
+- node 的 `type/layer/weight/keywords`
+- edge 的 `from/to/type/weight/reason`
+- graph 顶层的 `version/updatedAt`
+
 ## 6. Recall 与 graph 的关系
 
 Recall engine 默认遵循以下顺序：
@@ -220,6 +234,7 @@ Recall engine 默认遵循以下顺序：
 - 最近验证时间
 
 当前长期层样例条目已按这套字段草案组织，可直接作为后续 schema validator、fixture test 与 host adapter 演示的初始样本。
+仓库当前还提供 `npm run validate:memory-schema`，用于遍历仓库根 `.memory` 与 `fixtures/*/.memory` 并验证这些最小字段模型。
 
 ## 10. 当前阶段边界
 

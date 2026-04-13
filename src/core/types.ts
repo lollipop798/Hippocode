@@ -103,7 +103,12 @@ export interface MemoryGraphEdge {
     | "caused_by"
     | "mitigated_by"
     | "implements"
-    | "observed_in";
+    | "observed_in"
+    | "constrains"
+    | "applies_to"
+    | "describes"
+    | "risks"
+    | "mitigates";
   weight: number;
   reason: string;
   metadata?: Record<string, unknown>;

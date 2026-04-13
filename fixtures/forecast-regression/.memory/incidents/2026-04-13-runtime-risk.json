@@ -1,0 +1,14 @@
+{
+  "id": "incident:F-2026-04-13-001",
+  "layer": "incident",
+  "title": "Runtime Planning Regression Risk",
+  "summary": "若未先做 recall，规划容易忽略 runtime 与 exposureTrace 的约束。",
+  "keywords": ["incident", "runtime", "planning", "risk", "constraint"],
+  "scope": "planning-runtime",
+  "exposure": "summary",
+  "content": "本事故条目用于让 forecast 自动带出高风险等级和 recall 风险摘要。",
+  "references": ["src/core/runtime.ts", "docs/design.md"],
+  "createdAt": "2026-04-13T11:05:00.000Z",
+  "updatedAt": "2026-04-13T11:05:00.000Z",
+  "confidence": 0.93
+}

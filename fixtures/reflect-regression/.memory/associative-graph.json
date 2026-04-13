@@ -1,0 +1,52 @@
+{
+  "version": "1",
+  "updatedAt": "2026-04-13T12:15:00.000Z",
+  "nodes": [
+    {
+      "id": "decision:R-2026-04-13-001",
+      "type": "decision",
+      "title": "Reflect Loop Contract",
+      "summary": "reflect 依赖 prior forecast。",
+      "keywords": ["reflect", "forecast", "session"],
+      "layer": "decision",
+      "weight": 0.86,
+      "confidence": 0.87
+    },
+    {
+      "id": "incident:R-2026-04-13-001",
+      "type": "incident",
+      "title": "Missed Validation Signal",
+      "summary": "忽略 validation 会带来错误复盘。",
+      "keywords": ["incident", "reflect", "validation"],
+      "layer": "incident",
+      "weight": 0.92,
+      "confidence": 0.91
+    },
+    {
+      "id": "pattern:R-2026-04-13-001",
+      "type": "pattern",
+      "title": "Signal Triage Pattern",
+      "summary": "信号分层记录模式。",
+      "keywords": ["pattern", "signal", "lessons"],
+      "layer": "pattern",
+      "weight": 0.82,
+      "confidence": 0.85
+    }
+  ],
+  "edges": [
+    {
+      "from": "decision:R-2026-04-13-001",
+      "to": "incident:R-2026-04-13-001",
+      "type": "related_to",
+      "weight": 0.8,
+      "reason": "prior forecast 与偏差来源直接关联"
+    },
+    {
+      "from": "incident:R-2026-04-13-001",
+      "to": "pattern:R-2026-04-13-001",
+      "type": "mitigated_by",
+      "weight": 0.76,
+      "reason": "信号分层模式用于缓解误判"
+    }
+  ]
+}

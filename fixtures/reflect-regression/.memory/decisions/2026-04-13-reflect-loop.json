@@ -1,0 +1,14 @@
+{
+  "id": "decision:R-2026-04-13-001",
+  "layer": "decision",
+  "title": "Reflect Loop Contract",
+  "summary": "执行结束后必须回看 prior forecast 与 session events。",
+  "keywords": ["reflect", "decision", "forecast", "session", "review"],
+  "scope": "reflection-loop",
+  "exposure": "summary",
+  "content": "用于固定验证 reflect 会在 prior forecast 存在时补上 decision 候选层。",
+  "references": ["src/core/runtime.ts", "docs/commands.md"],
+  "createdAt": "2026-04-13T12:00:00.000Z",
+  "updatedAt": "2026-04-13T12:00:00.000Z",
+  "confidence": 0.87
+}

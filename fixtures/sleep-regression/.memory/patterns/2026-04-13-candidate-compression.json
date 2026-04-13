@@ -1,0 +1,14 @@
+{
+  "id": "pattern:S-2026-04-13-001",
+  "layer": "pattern",
+  "title": "Candidate Compression Pattern",
+  "summary": "把验证结果和 touchedFiles 压缩成长期候选标签。",
+  "keywords": ["sleep", "pattern", "candidate", "compression", "workflow"],
+  "scope": "sleep-pipeline",
+  "exposure": "summary",
+  "content": "此模式条目帮助 sleep 稳定识别 pattern 候选层。",
+  "references": ["docs/commands.md"],
+  "createdAt": "2026-04-13T13:15:00.000Z",
+  "updatedAt": "2026-04-13T13:15:00.000Z",
+  "confidence": 0.85
+}

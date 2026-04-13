@@ -1,0 +1,14 @@
+{
+  "id": "pattern:F-2026-04-13-001",
+  "layer": "pattern",
+  "title": "Minimal Change Planning Pattern",
+  "summary": "先确认约束与焦点，再沿最小改动路径推进。",
+  "keywords": ["pattern", "planning", "minimal-change", "validation"],
+  "scope": "workflow",
+  "exposure": "summary",
+  "content": "此模式条目为 forecast 的步骤文案提供稳定背景。",
+  "references": ["docs/commands.md"],
+  "createdAt": "2026-04-13T11:15:00.000Z",
+  "updatedAt": "2026-04-13T11:15:00.000Z",
+  "confidence": 0.84
+}

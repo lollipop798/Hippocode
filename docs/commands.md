@@ -34,6 +34,7 @@
 - `structured` 供程序消费
 - `scripts/smoke-test.mjs` 当前以 `/hippo:recall` 与 `/hippo:sleep` 的最小输入输出合同为基准做回归验证
 - `scripts/regression-recall-exposure.mjs` 当前以固定 fixture 验证 `/hippo:recall` 的排序方向与 `exposureTrace`
+- `scripts/regression-runtime-commands.mjs` 当前以固定 fixture 验证 `/hippo:forecast`、`/hippo:reflect`、`/hippo:sleep` 的结构化输出、写入边界与 telemetry
 
 ## 2. `/hippo:recall`
 
@@ -148,6 +149,13 @@
 - 风险等级
 - 是否需要先做额外 recall
 
+### 当前回归断言
+
+- `fixtures/forecast-regression/.memory` 提供固定 recall 背景
+- `regression:forecast` 验证 steps 数量、`recommendedFocusPath`、`followUpCommands`
+- telemetry 必须保持 `nextCommandHint = /hippo:reflect`
+- 当 `targetExposure = focused` 时，当前 runtime 合同记录 `exposureTrace = ["focused"]`
+
 ## 4. `/hippo:reflect`
 
 ### 目标
@@ -185,6 +193,13 @@
 - 误导线索
 - 可复用经验
 
+### 当前回归断言
+
+- `fixtures/reflect-regression/.memory` 只提供稳定的读取背景
+- `regression:reflect` 验证 `deviations`、`confirmedSignals`、`misleadingSignals`
+- reflect 默认只新增 `.memory/episodic/` 条目，不直接写长期层
+- telemetry 必须保持 `nextCommandHint = /hippo:sleep` 且 `exposureTrace = ["summary"]`
+
 ## 5. `/hippo:sleep`
 
 ### 目标
@@ -220,6 +235,13 @@
 - 是否值得晋升为长期知识
 - 候选层归属
 - 需要在后续 `deep-sleep` 中确认的内容
+
+### 当前回归断言
+
+- `fixtures/sleep-regression/.memory` 提供候选层语义背景
+- `regression:sleep` 验证 `candidateLayers` 是否覆盖 `episodic`、`incident`、`decision`、`module`、`pattern`
+- 当 `signalStrength = high` 且存在 validation 时，当前 runtime 合同要求 `promoteToLongTerm = true`
+- telemetry 必须保持 `nextCommandHint = /hippo:deep-sleep`
 
 ## 6. 扩展命令
 
@@ -272,4 +294,4 @@
 - 依赖项
 - 建议的下一条命令
 
-当前 smoke test 仅覆盖 `summary` 暴露层下的 recall / sleep happy path；`focused`、`full` 的暴露轨迹与 incident 优先排序由 `regression:recall` 基于固定 fixture 继续验证，扩展命令仍保留到后续阶段。
+当前 smoke test 仅覆盖 `summary` 暴露层下的 recall / sleep happy path；`focused`、`full` 的暴露轨迹与 incident 优先排序由 `regression:recall` 基于固定 fixture 继续验证。`forecast`、`reflect`、`sleep` 的结构化输出、写入边界与 follow-up telemetry 由 `regression:runtime` 及其单命令入口继续验证，扩展命令仍保留到后续阶段。

@@ -1,0 +1,14 @@
+{
+  "id": "decision:F-2026-04-13-001",
+  "layer": "decision",
+  "title": "Forecast Summary-First Planning",
+  "summary": "规划阶段先使用 recall 摘要，再决定是否升级暴露层。",
+  "keywords": ["forecast", "planning", "summary", "runtime", "recall"],
+  "scope": "planning-runtime",
+  "exposure": "summary",
+  "content": "此决策用于固定验证 /hippo:forecast 会先依赖 recall snapshot 再生成步骤。",
+  "references": ["src/core/runtime.ts", "docs/commands.md"],
+  "createdAt": "2026-04-13T11:00:00.000Z",
+  "updatedAt": "2026-04-13T11:00:00.000Z",
+  "confidence": 0.88
+}

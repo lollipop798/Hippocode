@@ -23,6 +23,7 @@ Hippocode 是一套受海马体启发的编码代理记忆框架，面向 Claude
 - summary-first 的 recall / forecast / reflect / sleep 最小运行时
 - `scripts/smoke-test.mjs` 对 recall / sleep happy path 的最小回归验证
 - `fixtures/recall-regression/.memory` 与 `scripts/regression-recall-exposure.mjs` 的 recall 排序 / 暴露轨迹固定回归
+- `fixtures/forecast-regression/.memory`、`fixtures/reflect-regression/.memory`、`fixtures/sleep-regression/.memory` 与 `scripts/regression-runtime-commands.mjs` 的命令级固定回归
 - `.memory/decisions`、`incidents`、`patterns`、`modules` 的长期层基线样例
 - Claude / Codex 的 host adapter descriptor
 - `.memory`、`.claude`、`.codex` 的基础目录骨架
@@ -103,11 +104,16 @@ npm run typecheck
 npm run build
 npm run smoke
 npm run regression:recall
+npm run regression:runtime
+npm run regression:forecast
+npm run regression:reflect
+npm run regression:sleep
 npm run clean
 ```
 
 `npm run smoke` 会基于已构建的 `dist/` 产物执行最小回归，验证 `recall` 与 `sleep` 的 happy path，以及 fresh `.memory` 初始化后的 `episodic` 写入链路。
 `npm run regression:recall` 会基于 `fixtures/recall-regression/.memory` 里的固定 fixture，验证 recall 的 `summary` / `focused` / `full` 暴露轨迹，并检查 incident 相对 module 的排序优先性。
+`npm run regression:runtime` 会统一执行 `forecast`、`reflect`、`sleep` 的固定回归；对应的单命令入口会读取各自的 `fixtures/*-regression/.memory`，验证计划输出、`episodic` 写入、候选层判断与 `nextCommandHint`/`exposureTrace` 合同。
 
 ## npm 发布方向
 

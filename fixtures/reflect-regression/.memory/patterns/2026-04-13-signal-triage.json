@@ -1,0 +1,14 @@
+{
+  "id": "pattern:R-2026-04-13-001",
+  "layer": "pattern",
+  "title": "Signal Triage Pattern",
+  "summary": "把 confirmed signals 与 misleading signals 分开记录，方便下轮复用。",
+  "keywords": ["pattern", "signal", "reflect", "lessons", "reuse"],
+  "scope": "reflection-loop",
+  "exposure": "summary",
+  "content": "此模式条目帮助 reflect 稳定产出 reusable lessons。",
+  "references": ["docs/memory-model.md"],
+  "createdAt": "2026-04-13T12:10:00.000Z",
+  "updatedAt": "2026-04-13T12:10:00.000Z",
+  "confidence": 0.85
+}

@@ -130,6 +130,11 @@ Recall engine 在当前阶段已实现最小运行时，仍保持轻量启发式
 
 当前仓库已经用 `scripts/smoke-test.mjs` 固化了 recall 与 sleep 的最小 happy path，作为 Phase 2 的低成本稳定性护栏。
 同时，`fixtures/recall-regression/.memory` 与 `scripts/regression-recall-exposure.mjs` 负责稳定验证 recall 的排序方向与 `exposureTrace` 语义，避免后续启发式调整悄悄破坏默认行为。
+进一步地，`fixtures/forecast-regression/.memory`、`fixtures/reflect-regression/.memory`、`fixtures/sleep-regression/.memory` 与 `scripts/regression-runtime-commands.mjs` 提供命令级固定回归，分别覆盖：
+
+- `forecast` 的计划步骤、推荐焦点、follow-up 命令与 telemetry 依赖收敛
+- `reflect` 的偏差识别、candidate layers 判定与 `episodic` 写入
+- `sleep` 的候选层判断、晋升建议与 `deep-sleep` 提示
 
 ## 6. 渐进式暴露
 

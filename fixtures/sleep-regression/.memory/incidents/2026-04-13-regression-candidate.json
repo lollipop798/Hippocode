@@ -1,0 +1,14 @@
+{
+  "id": "incident:S-2026-04-13-001",
+  "layer": "incident",
+  "title": "Regression Candidate Compression",
+  "summary": "回归问题需要在 sleep 阶段保留为 incident 候选，避免后续遗忘。",
+  "keywords": ["sleep", "incident", "regression", "candidate", "bug"],
+  "scope": "sleep-pipeline",
+  "exposure": "summary",
+  "content": "此事故条目确保 sleep 候选层稳定包含 incident。",
+  "references": ["docs/design.md"],
+  "createdAt": "2026-04-13T13:05:00.000Z",
+  "updatedAt": "2026-04-13T13:05:00.000Z",
+  "confidence": 0.92
+}

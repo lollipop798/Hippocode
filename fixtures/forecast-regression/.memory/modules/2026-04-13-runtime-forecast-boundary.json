@@ -1,0 +1,14 @@
+{
+  "id": "module:F-2026-04-13-001",
+  "layer": "module",
+  "title": "Runtime Forecast Boundary",
+  "summary": "runtime 负责先 recall 再 forecast，避免直接在空上下文里规划。",
+  "keywords": ["module", "runtime", "forecast", "boundary", "planning"],
+  "scope": "src/core/runtime.ts",
+  "exposure": "summary",
+  "content": "此模块条目帮助 forecast 命中 recommendedFocusPath。",
+  "references": ["src/core/runtime.ts"],
+  "createdAt": "2026-04-13T11:10:00.000Z",
+  "updatedAt": "2026-04-13T11:10:00.000Z",
+  "confidence": 0.85
+}

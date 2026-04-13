@@ -1,0 +1,14 @@
+{
+  "id": "incident:R-2026-04-13-001",
+  "layer": "incident",
+  "title": "Missed Validation Signal",
+  "summary": "若忽略 validation 结果，reflect 会漏掉误导信号与偏差来源。",
+  "keywords": ["incident", "reflect", "validation", "misleading", "deviation"],
+  "scope": "reflection-loop",
+  "exposure": "summary",
+  "content": "此事故条目用于保持 reflect 的 incident 候选稳定。",
+  "references": ["docs/design.md"],
+  "createdAt": "2026-04-13T12:05:00.000Z",
+  "updatedAt": "2026-04-13T12:05:00.000Z",
+  "confidence": 0.91
+}

@@ -1,0 +1,79 @@
+{
+  "version": "1",
+  "updatedAt": "2026-04-13T11:20:00.000Z",
+  "nodes": [
+    {
+      "id": "project-profile",
+      "type": "project",
+      "title": "Project Profile",
+      "summary": "forecast fixture 的项目约束。",
+      "keywords": ["forecast", "fixture", "planning"],
+      "layer": "project",
+      "weight": 0.82,
+      "confidence": 0.85
+    },
+    {
+      "id": "decision:F-2026-04-13-001",
+      "type": "decision",
+      "title": "Forecast Summary-First Planning",
+      "summary": "先 recall 再 forecast。",
+      "keywords": ["forecast", "planning", "summary"],
+      "layer": "decision",
+      "weight": 0.88,
+      "confidence": 0.88
+    },
+    {
+      "id": "incident:F-2026-04-13-001",
+      "type": "incident",
+      "title": "Runtime Planning Regression Risk",
+      "summary": "未做 recall 会丢失 planning 风险。",
+      "keywords": ["incident", "runtime", "planning", "risk"],
+      "layer": "incident",
+      "weight": 0.95,
+      "confidence": 0.93
+    },
+    {
+      "id": "module:F-2026-04-13-001",
+      "type": "module",
+      "title": "Runtime Forecast Boundary",
+      "summary": "runtime 负责 recall 与 forecast 的顺序。",
+      "keywords": ["module", "runtime", "forecast"],
+      "layer": "module",
+      "weight": 0.81,
+      "confidence": 0.85
+    },
+    {
+      "id": "pattern:F-2026-04-13-001",
+      "type": "pattern",
+      "title": "Minimal Change Planning Pattern",
+      "summary": "规划遵循最小改动路径。",
+      "keywords": ["pattern", "planning", "validation"],
+      "layer": "pattern",
+      "weight": 0.8,
+      "confidence": 0.84
+    }
+  ],
+  "edges": [
+    {
+      "from": "decision:F-2026-04-13-001",
+      "to": "incident:F-2026-04-13-001",
+      "type": "related_to",
+      "weight": 0.84,
+      "reason": "规划决策与风险条目直接相关"
+    },
+    {
+      "from": "decision:F-2026-04-13-001",
+      "to": "module:F-2026-04-13-001",
+      "type": "implements",
+      "weight": 0.8,
+      "reason": "runtime 模块承接规划顺序"
+    },
+    {
+      "from": "pattern:F-2026-04-13-001",
+      "to": "module:F-2026-04-13-001",
+      "type": "observed_in",
+      "weight": 0.74,
+      "reason": "最小改动路径在 runtime 边界里复用"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "decision:S-2026-04-13-001",
+  "layer": "decision",
+  "title": "Sleep Promotion Boundary",
+  "summary": "只有高信号并通过验证的候选，才建议进入 deep-sleep。",
+  "keywords": ["sleep", "decision", "promotion", "validation", "constraint"],
+  "scope": "sleep-pipeline",
+  "exposure": "summary",
+  "content": "此决策条目用于稳定验证 promoteToLongTerm 判定。",
+  "references": ["src/core/runtime.ts", "docs/memory-model.md"],
+  "createdAt": "2026-04-13T13:00:00.000Z",
+  "updatedAt": "2026-04-13T13:00:00.000Z",
+  "confidence": 0.89
+}

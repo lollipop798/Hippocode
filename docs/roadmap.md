@@ -40,6 +40,8 @@
 - Claude / Codex host adapter descriptor
 - `scripts/smoke-test.mjs` 最小回归脚本
 - `fixtures/recall-regression/.memory` 与 `scripts/regression-recall-exposure.mjs`
+- `fixtures/forecast-regression/.memory`、`fixtures/reflect-regression/.memory`、`fixtures/sleep-regression/.memory`
+- `scripts/regression-runtime-commands.mjs` 与 `regression:forecast|reflect|sleep|runtime`
 - `.memory` 长期层基线样例与 graph 基线关系
 
 建议 issue：
@@ -60,9 +62,10 @@
 
 建议 issue：
 
-6. 实现 reflect record builder
-7. 实现 sleep candidate writer
-8. 实现 deep-sleep promotion policy
+6. 为 runtime regression 增加总入口与统一报告
+7. 扩展 reflect 记录结构与候选层判定
+8. 实现 sleep candidate writer
+9. 实现 deep-sleep promotion policy
 
 ## Phase 4：host adapters
 
@@ -74,8 +77,8 @@
 
 建议 issue：
 
-9. 定义 Claude host adapter 接口
-10. 定义 Codex host adapter 接口
+10. 定义 Claude host adapter 接口
+11. 定义 Codex host adapter 接口
 
 ## Phase 5：CLI / scaffold
 

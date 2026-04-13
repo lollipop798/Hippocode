@@ -1,0 +1,14 @@
+{
+  "id": "module:S-2026-04-13-001",
+  "layer": "module",
+  "title": "Runtime Memory Store Touchpoint",
+  "summary": "当 touchedFiles 命中 src/ 时，sleep 应识别 module 候选层。",
+  "keywords": ["sleep", "module", "runtime", "memory-store", "src"],
+  "scope": "src/core/memory-store.ts",
+  "exposure": "summary",
+  "content": "此模块条目帮助 sleep 回归校验 touchedFiles 的启发式。",
+  "references": ["src/core/memory-store.ts"],
+  "createdAt": "2026-04-13T13:10:00.000Z",
+  "updatedAt": "2026-04-13T13:10:00.000Z",
+  "confidence": 0.84
+}

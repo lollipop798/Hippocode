@@ -287,6 +287,7 @@
 - 必须新增长期层条目，并返回 `promotedLayers`、`promotedEntryIds`
 - 必须返回 `graphUpdated = true`
 - telemetry 必须保持 `nextCommandHint = /hippo:status`
+- `regression:deep-sleep-partial` 会验证拒绝路径：当 `validation` 为空或 `signalStrength = low` 时，必须返回 `status = "partial"`、保留 `skippedReasons`、返回 `graphUpdated = false`，且不得写入长期层或 graph
 
 ### `/hippo:project-onboard`
 

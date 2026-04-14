@@ -296,12 +296,85 @@ async function runDeepSleepRegression(projectRoot, runtimeFactory) {
   }
 }
 
+async function runDeepSleepPartialRegression(projectRoot, runtimeFactory) {
+  const { tempRoot, memoryRoot } = await createIsolatedMemoryRoot(projectRoot, "sleep-regression");
+
+  try {
+    const now = createFixedNow();
+    const store = runtimeFactory.createFileMemoryStore({ rootDir: memoryRoot, now });
+    const runtime = runtimeFactory.createHippoRuntime({ store, now });
+    const graphBefore = await store.readGraph();
+    const beforeDecisionCount = await countLayerFiles(memoryRoot, "decisions");
+    const beforeIncidentCount = await countLayerFiles(memoryRoot, "incidents");
+    const beforePatternCount = await countLayerFiles(memoryRoot, "patterns");
+    const beforeModuleCount = await countLayerFiles(memoryRoot, "modules");
+
+    const sleepResponse = await runtime.executeSleep({
+      summary: "low signal candidate should stay in episodic until validation is restored",
+      touchedFiles: ["src/core/runtime.ts"],
+      validation: [],
+      tags: ["pattern"],
+      exposureLevel: "summary",
+      signalStrength: "low"
+    });
+
+    const response = await runtime.executeDeepSleep({
+      summary: sleepResponse.payload.structured.summary,
+      touchedFiles: sleepResponse.payload.structured.touchedFiles,
+      validation: sleepResponse.payload.structured.validation,
+      candidateLayers: sleepResponse.payload.structured.candidateLayers,
+      sourceEpisodicId: sleepResponse.payload.structured.episodicEntryId,
+      tags: ["pattern"],
+      exposureLevel: "summary",
+      signalStrength: "low"
+    });
+
+    const graphAfter = await store.readGraph();
+    const afterDecisionCount = await countLayerFiles(memoryRoot, "decisions");
+    const afterIncidentCount = await countLayerFiles(memoryRoot, "incidents");
+    const afterPatternCount = await countLayerFiles(memoryRoot, "patterns");
+    const afterModuleCount = await countLayerFiles(memoryRoot, "modules");
+
+    assert(response.status === "partial", "deep-sleep partial regression 未返回 partial。");
+    assert(response.payload.structured.command === "/hippo:deep-sleep", "deep-sleep partial command 不正确。");
+    assert(response.payload.structured.graphUpdated === false, "deep-sleep partial 不应更新 graph。");
+    assert(response.payload.structured.promotedEntryIds.length === 0, "deep-sleep partial 不应产生晋升条目。");
+    assert(response.payload.structured.promotedLayers.length === 0, "deep-sleep partial 不应返回晋升层。");
+    assert(
+      response.payload.structured.skippedReasons.some((reason) => reason.includes("缺少验证结果")),
+      "deep-sleep partial 未返回缺少验证结果的 skippedReasons。"
+    );
+    assert(
+      response.payload.structured.skippedReasons.some((reason) => reason.includes("signalStrength 为 low")),
+      "deep-sleep partial 未返回 low signal 的 skippedReasons。"
+    );
+    assert(afterDecisionCount === beforeDecisionCount, "deep-sleep partial 不应新增 decision 条目。");
+    assert(afterIncidentCount === beforeIncidentCount, "deep-sleep partial 不应新增 incident 条目。");
+    assert(afterPatternCount === beforePatternCount, "deep-sleep partial 不应新增 pattern 条目。");
+    assert(afterModuleCount === beforeModuleCount, "deep-sleep partial 不应新增 module 条目。");
+    assert(graphAfter.nodes.length === graphBefore.nodes.length, "deep-sleep partial 不应新增 graph nodes。");
+    assert(graphAfter.edges.length === graphBefore.edges.length, "deep-sleep partial 不应新增 graph edges。");
+    assertTelemetry(response, "summary", ["summary"], "/hippo:sleep");
+
+    return {
+      skippedReasons: response.payload.structured.skippedReasons.length,
+      graphNodes: graphAfter.nodes.length,
+      graphEdges: graphAfter.edges.length
+    };
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+}
+
 async function run() {
   const projectRoot = process.cwd();
   const mode = process.argv[2] ?? "all";
   const runtimeFactory = await loadRuntime(projectRoot);
 
-  const selectedModes = mode === "all" ? ["forecast", "reflect", "sleep", "deep-sleep"] : [mode];
+  const selectedModes =
+    mode === "all"
+      ? ["forecast", "reflect", "sleep", "deep-sleep", "deep-sleep-partial"]
+      : [mode];
   const results = [];
 
   for (const selectedMode of selectedModes) {
@@ -322,6 +395,14 @@ async function run() {
 
     if (selectedMode === "deep-sleep") {
       results.push(["deep-sleep", await runDeepSleepRegression(projectRoot, runtimeFactory)]);
+      continue;
+    }
+
+    if (selectedMode === "deep-sleep-partial") {
+      results.push([
+        "deep-sleep-partial",
+        await runDeepSleepPartialRegression(projectRoot, runtimeFactory)
+      ]);
       continue;
     }
 

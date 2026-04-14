@@ -120,6 +120,7 @@ npm run clean
 `npm run regression:recall` 会基于 `fixtures/recall-regression/.memory` 里的固定 fixture，验证 recall 的 `summary` / `focused` / `full` 暴露轨迹，并检查 incident 相对 module 的排序优先性。
 `npm run regression:runtime` 会统一执行 `forecast`、`reflect`、`sleep`、`deep-sleep` 的固定回归；对应的单命令入口会读取各自的 `fixtures/*-regression/.memory`，验证计划输出、`episodic` 写入、候选层判断、长期层晋升与 `nextCommandHint`/`exposureTrace` 合同。
 `npm run regression:deep-sleep` 会先通过 `sleep` 生成候选，再验证 `deep-sleep` 是否把候选晋升到 `decision`、`incident`、`pattern`、`module` 长期层，并同步更新 `associative-graph.json`。
+`npm run regression:deep-sleep-partial` 会验证 `deep-sleep` 的拒绝路径：当 validation 缺失或 `signalStrength = low` 时，命令必须返回 `partial`、保留 `skippedReasons`、不写入长期层且不更新 graph。
 `npm run regression:all` 会串联 `typecheck`、`build`、`validate:memory-schema`、`smoke`、`regression:recall` 与 `regression:runtime`，作为当前 Phase 2 的一键验收入口。
 
 ## npm 发布方向

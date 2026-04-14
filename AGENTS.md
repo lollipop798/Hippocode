@@ -154,6 +154,7 @@ Phase 1 的仓库初始化已经完成，当前进入 Phase 2 MVP。
 - `forecast` 用 recall 结果做路径预测
 - `reflect` 记录偏差、判断依据与可复用经验
 - `sleep` 先写候选与情景层，不直接固化为长期知识
+- `deep-sleep` 只有在存在 validation、候选层可晋升且信号不为 low 时才允许写入长期层；否则必须返回 `partial`，保留 `skippedReasons`，并且不得更新 graph
 
 ## 9. 输出协议约束
 

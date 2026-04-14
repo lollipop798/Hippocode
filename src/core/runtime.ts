@@ -6,11 +6,16 @@ import {
 } from "./recall-engine.js";
 import type {
   CommandEnvelope,
+  DeepSleepCommandInput,
+  DeepSleepResult,
   ForecastCommandInput,
   ForecastPlan,
   ForecastStep,
   HippoCommandName,
   MemoryEntry,
+  MemoryGraphEdge,
+  MemoryGraphNode,
+  MemoryGraphSnapshot,
   MemoryLayer,
   RecallCommandInput,
   RecallPipelineConfig,
@@ -33,6 +38,7 @@ export interface HippoRuntime {
   executeForecast(input: ForecastCommandInput): Promise<CommandEnvelope<ForecastPlan>>;
   executeReflect(input: ReflectCommandInput): Promise<CommandEnvelope<ReflectInsight>>;
   executeSleep(input: SleepCommandInput): Promise<CommandEnvelope<SleepEntry>>;
+  executeDeepSleep(input: DeepSleepCommandInput): Promise<CommandEnvelope<DeepSleepResult>>;
   executeCommand(
     command: HippoCommandName,
     input:
@@ -40,11 +46,13 @@ export interface HippoRuntime {
       | ForecastCommandInput
       | ReflectCommandInput
       | SleepCommandInput
+      | DeepSleepCommandInput
   ): Promise<
     | CommandEnvelope<RecallResult>
     | CommandEnvelope<ForecastPlan>
     | CommandEnvelope<ReflectInsight>
     | CommandEnvelope<SleepEntry>
+    | CommandEnvelope<DeepSleepResult>
   >;
 }
 
@@ -266,6 +274,107 @@ export function createHippoRuntime(options: HippoRuntimeOptions): HippoRuntime {
     };
   }
 
+  async function executeDeepSleep(
+    input: DeepSleepCommandInput
+  ): Promise<CommandEnvelope<DeepSleepResult>> {
+    const promotedLayers = uniqueStrings(
+      input.candidateLayers.filter(isPromotableMemoryLayer)
+    ) as Array<Extract<MemoryLayer, "decision" | "incident" | "pattern" | "module">>;
+    const skippedReasons: string[] = [];
+
+    if (promotedLayers.length === 0) {
+      skippedReasons.push("没有可晋升的长期层候选。");
+    }
+
+    if (input.validation.length === 0) {
+      skippedReasons.push("缺少验证结果，当前不满足长期沉淀条件。");
+    }
+
+    if ((input.signalStrength ?? "medium") === "low") {
+      skippedReasons.push("signalStrength 为 low，当前不建议晋升。");
+    }
+
+    if (skippedReasons.length > 0) {
+      return {
+        status: "partial",
+        payload: {
+          humanReadable: summarizeText(
+            `deep-sleep 暂未执行长期晋升。原因：${skippedReasons.join("；")} 建议先补充 validation 或重新运行 /hippo:sleep。`,
+            260
+          ),
+          structured: {
+            command: "/hippo:deep-sleep",
+            summary: summarizeText(input.summary, 220),
+            ...(input.sourceEpisodicId ? { sourceEpisodicId: input.sourceEpisodicId } : {}),
+            promotedLayers: [],
+            promotedEntryIds: [],
+            graphUpdated: false,
+            skippedReasons
+          }
+        },
+        telemetry: {
+          confidence: 0.46,
+          exposureLevel: input.exposureLevel ?? "summary",
+          dependencies: uniqueStrings(input.candidateLayers),
+          exposureTrace: [input.exposureLevel ?? "summary"],
+          nextCommandHint: "/hippo:sleep"
+        }
+      };
+    }
+
+    const promotedEntries = promotedLayers.map((layer) =>
+      buildPromotedEntry({
+        layer,
+        input,
+        now
+      })
+    );
+    const writeResults = [];
+
+    for (const entry of promotedEntries) {
+      writeResults.push(await options.store.writeEntry(entry));
+    }
+
+    const sourceEntry = input.sourceEpisodicId
+      ? await findEpisodicEntryById(options.store, input.sourceEpisodicId)
+      : undefined;
+    const graph = await options.store.readGraph();
+    const nextGraph = buildDeepSleepGraphSnapshot({
+      graph,
+      ...(sourceEntry ? { sourceEntry } : {}),
+      promotedEntries: writeResults.map((result) => result.entry),
+      now
+    });
+
+    await options.store.writeGraph(nextGraph);
+
+    return {
+      status: "ok",
+      payload: {
+        humanReadable: summarizeText(
+          `已完成 deep-sleep 晋升，新增 ${writeResults.length} 条长期记忆，并同步更新 associative graph。建议后续通过 /hippo:status 或 /hippo:recall 检查新记忆的可见性。`,
+          260
+        ),
+        structured: {
+          command: "/hippo:deep-sleep",
+          summary: summarizeText(input.summary, 220),
+          ...(input.sourceEpisodicId ? { sourceEpisodicId: input.sourceEpisodicId } : {}),
+          promotedLayers,
+          promotedEntryIds: writeResults.map((result) => result.entry.id),
+          graphUpdated: true,
+          skippedReasons: []
+        }
+      },
+      telemetry: {
+        confidence: 0.88,
+        exposureLevel: input.exposureLevel ?? "summary",
+        dependencies: uniqueStrings(writeResults.map((result) => result.entry.id)),
+        exposureTrace: [input.exposureLevel ?? "summary"],
+        nextCommandHint: "/hippo:status"
+      }
+    };
+  }
+
   async function executeCommand(
     command: HippoCommandName,
     input:
@@ -273,11 +382,13 @@ export function createHippoRuntime(options: HippoRuntimeOptions): HippoRuntime {
       | ForecastCommandInput
       | ReflectCommandInput
       | SleepCommandInput
+      | DeepSleepCommandInput
   ): Promise<
     | CommandEnvelope<RecallResult>
     | CommandEnvelope<ForecastPlan>
     | CommandEnvelope<ReflectInsight>
     | CommandEnvelope<SleepEntry>
+    | CommandEnvelope<DeepSleepResult>
   > {
     switch (command) {
       case "/hippo:recall":
@@ -288,6 +399,8 @@ export function createHippoRuntime(options: HippoRuntimeOptions): HippoRuntime {
         return executeReflect(input as ReflectCommandInput);
       case "/hippo:sleep":
         return executeSleep(input as SleepCommandInput);
+      case "/hippo:deep-sleep":
+        return executeDeepSleep(input as DeepSleepCommandInput);
       default:
         throw new Error(`当前运行时尚未实现命令 ${command}`);
     }
@@ -298,6 +411,7 @@ export function createHippoRuntime(options: HippoRuntimeOptions): HippoRuntime {
     executeForecast,
     executeReflect,
     executeSleep,
+    executeDeepSleep,
     executeCommand
   };
 }
@@ -455,4 +569,215 @@ function buildEpisodicEntry(options: {
     updatedAt: createdAt,
     metadata: options.metadata
   };
+}
+
+function isPromotableMemoryLayer(
+  layer: MemoryLayer
+): layer is Extract<MemoryLayer, "decision" | "incident" | "pattern" | "module"> {
+  return ["decision", "incident", "pattern", "module"].includes(layer);
+}
+
+async function findEpisodicEntryById(
+  store: MemoryStore,
+  sourceEpisodicId: string
+): Promise<MemoryEntry | undefined> {
+  const entries = await store.queryEntries({
+    layers: ["episodic"],
+    includeArchived: true,
+    exposureLevel: "full",
+    limit: 1000
+  });
+
+  return entries.find((entry) => entry.id === sourceEpisodicId);
+}
+
+function buildPromotedEntry(options: {
+  layer: Extract<MemoryLayer, "decision" | "incident" | "pattern" | "module">;
+  input: DeepSleepCommandInput;
+  now: () => Date;
+}): MemoryEntry {
+  const createdAt = options.now().toISOString();
+  const id = createPromotedEntryId(options.layer, createdAt);
+  const title = createPromotedEntryTitle(options.layer, options.input.summary);
+  const references = uniqueStrings([
+    ...(options.input.sourceEpisodicId ? [options.input.sourceEpisodicId] : []),
+    ...options.input.touchedFiles
+  ]);
+
+  return {
+    id,
+    layer: options.layer,
+    title,
+    summary: summarizeText(options.input.summary, 220),
+    keywords: uniqueStrings([
+      ...tokenizeText(options.input.summary),
+      ...(options.input.tags ?? []),
+      ...options.input.validation.flatMap((item) => tokenizeText(item)),
+      ...options.input.touchedFiles.flatMap((file) => tokenizeText(file)),
+      options.layer
+    ]).slice(0, 12),
+    scope: buildPromotedEntryScope(options.input.touchedFiles),
+    exposure: "summary",
+    ...(references.length > 0 ? { references } : {}),
+    createdAt,
+    updatedAt: createdAt,
+    confidence: options.input.signalStrength === "high" ? 0.9 : 0.76,
+    metadata: {
+      command: "/hippo:deep-sleep",
+      sourceEpisodicId: options.input.sourceEpisodicId,
+      candidateLayers: options.input.candidateLayers,
+      touchedFiles: options.input.touchedFiles,
+      validation: options.input.validation,
+      tags: options.input.tags ?? [],
+      signalStrength: options.input.signalStrength ?? "medium",
+      promotedFrom: "episodic"
+    },
+    content: buildPromotedEntryContent(options.layer, options.input)
+  };
+}
+
+function createPromotedEntryId(layer: MemoryLayer, createdAt: string): string {
+  const normalizedDate = createdAt.slice(0, 10);
+  const normalizedTime = createdAt.slice(11, 19).replace(/:/g, "");
+  const prefix =
+    layer === "decision"
+      ? "D"
+      : layer === "incident"
+        ? "I"
+        : layer === "pattern"
+          ? "P"
+          : "M";
+
+  return `${prefix}-${normalizedDate}-${normalizedTime}`;
+}
+
+function createPromotedEntryTitle(layer: MemoryLayer, summary: string): string {
+  const base = summarizeText(summary, 56);
+
+  switch (layer) {
+    case "decision":
+      return `Deep Sleep Decision: ${base}`;
+    case "incident":
+      return `Deep Sleep Incident: ${base}`;
+    case "pattern":
+      return `Deep Sleep Pattern: ${base}`;
+    case "module":
+      return `Deep Sleep Module Note: ${base}`;
+    default:
+      return base;
+  }
+}
+
+function buildPromotedEntryScope(touchedFiles: string[]): string {
+  if (touchedFiles.length === 0) {
+    return "deep-sleep";
+  }
+
+  return uniqueStrings(
+    touchedFiles.map((file) => {
+      const segments = file.split("/");
+      return segments.length >= 2 ? `${segments[0]}/${segments[1]}` : file;
+    })
+  ).join(", ");
+}
+
+function buildPromotedEntryContent(layer: MemoryLayer, input: DeepSleepCommandInput): string {
+  const sectionLabel =
+    layer === "decision"
+      ? "Decision"
+      : layer === "incident"
+        ? "Incident"
+        : layer === "pattern"
+          ? "Pattern"
+          : "Module";
+
+  return [
+    `## ${sectionLabel} Summary`,
+    input.summary,
+    "",
+    "## Validation",
+    input.validation.map((item) => `- ${item}`).join("\n") || "- none",
+    "",
+    "## Touched Files",
+    input.touchedFiles.map((item) => `- ${item}`).join("\n") || "- none",
+    "",
+    "## Promotion Context",
+    `- sourceEpisodicId: ${input.sourceEpisodicId ?? "none"}`,
+    `- signalStrength: ${input.signalStrength ?? "medium"}`,
+    `- candidateLayers: ${input.candidateLayers.join(", ")}`
+  ].join("\n");
+}
+
+function buildDeepSleepGraphSnapshot(options: {
+  graph: MemoryGraphSnapshot;
+  sourceEntry?: MemoryEntry;
+  promotedEntries: MemoryEntry[];
+  now: () => Date;
+}): MemoryGraphSnapshot {
+  const nodes = [...options.graph.nodes];
+  const edges = [...options.graph.edges];
+
+  if (options.sourceEntry) {
+    upsertGraphNode(nodes, memoryEntryToGraphNode(options.sourceEntry, 0.61));
+  }
+
+  for (const entry of options.promotedEntries) {
+    upsertGraphNode(nodes, memoryEntryToGraphNode(entry, 0.83));
+
+    if (options.sourceEntry) {
+      upsertGraphEdge(edges, {
+        from: options.sourceEntry.id,
+        to: entry.id,
+        type: "describes",
+        weight: 0.74,
+        reason: "deep-sleep promotion from episodic candidate"
+      });
+    }
+  }
+
+  return {
+    version: options.graph.version,
+    updatedAt: options.now().toISOString(),
+    nodes,
+    edges
+  };
+}
+
+function memoryEntryToGraphNode(entry: MemoryEntry, weight: number): MemoryGraphNode {
+  return {
+    id: entry.id,
+    type: entry.layer,
+    title: entry.title,
+    summary: entry.summary,
+    keywords: entry.keywords,
+    layer: entry.layer,
+    weight,
+    ...(typeof entry.confidence === "number" ? { confidence: entry.confidence } : {}),
+    lastValidated: entry.updatedAt ?? entry.createdAt,
+    ...(entry.metadata ? { metadata: entry.metadata } : {})
+  };
+}
+
+function upsertGraphNode(nodes: MemoryGraphNode[], node: MemoryGraphNode): void {
+  const index = nodes.findIndex((item) => item.id === node.id);
+
+  if (index >= 0) {
+    nodes[index] = node;
+    return;
+  }
+
+  nodes.push(node);
+}
+
+function upsertGraphEdge(edges: MemoryGraphEdge[], edge: MemoryGraphEdge): void {
+  const index = edges.findIndex(
+    (item) => item.from === edge.from && item.to === edge.to && item.type === edge.type
+  );
+
+  if (index >= 0) {
+    edges[index] = edge;
+    return;
+  }
+
+  edges.push(edge);
 }

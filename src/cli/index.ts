@@ -40,7 +40,7 @@ export const CLI_COMMANDS: CliCommandDescriptor[] = [
   {
     name: "/hippo:deep-sleep",
     description: "把已验证的候选记忆晋升到长期层。",
-    maturity: "planned"
+    maturity: "implemented"
   },
   {
     name: "/hippo:project-onboard",

@@ -121,6 +121,7 @@ Phase 1 的仓库初始化已经完成，当前进入 Phase 2 MVP。
 - 继续扩展 package-first 结构与导出入口
 - 实现文件型 memory store
 - 实现 summary-first 的 recall / forecast / reflect / sleep 最小运行时
+- 实现 `/hippo:deep-sleep` 的最小长期层晋升执行器
 - 维护 `src/core/schema.ts` 与 `scripts/validate-memory-schema.mjs`，作为 FileMemoryStore 的最小 runtime schema guard
 - 维护 `scripts/smoke-test.mjs` 作为最小回归验证入口
 - 维护 `fixtures/recall-regression/.memory` 与 `scripts/regression-recall-exposure.mjs`，作为 recall ranking / exposureTrace 的固定回归基线
@@ -132,7 +133,6 @@ Phase 1 的仓库初始化已经完成，当前进入 Phase 2 MVP。
 
 当前阶段暂不实现：
 
-- deep-sleep 晋升执行器
 - schema runtime validator
 - 真实 hook 自动化 wiring
 - 完整 graph 自动构建与复杂扩散排序

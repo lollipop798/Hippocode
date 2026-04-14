@@ -262,6 +262,27 @@ export interface SleepCommandInput {
   signalStrength?: SleepSignalStrength;
 }
 
+export interface DeepSleepCommandInput {
+  summary: string;
+  touchedFiles: string[];
+  validation: string[];
+  candidateLayers: MemoryLayer[];
+  sourceEpisodicId?: string;
+  tags?: string[];
+  exposureLevel?: ExposureLevel;
+  signalStrength?: SleepSignalStrength;
+}
+
+export interface DeepSleepResult {
+  command: "/hippo:deep-sleep";
+  summary: string;
+  sourceEpisodicId?: string;
+  promotedLayers: MemoryLayer[];
+  promotedEntryIds: string[];
+  graphUpdated: boolean;
+  skippedReasons: string[];
+}
+
 export interface MemoryStoreQuery {
   layers?: MemoryLayer[];
   keywords?: string[];

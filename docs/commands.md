@@ -4,7 +4,7 @@
 
 所有命令统一使用 `/hippo:` 命名空间，避免与宿主内置命令冲突。
 
-当前仓库已经为 `/hippo:recall`、`/hippo:forecast`、`/hippo:reflect`、`/hippo:sleep` 提供可调用的最小 library runtime；扩展命令目前只保留协议语义与宿主映射边界，执行器留待后续阶段实现。
+当前仓库已经为 `/hippo:recall`、`/hippo:forecast`、`/hippo:reflect`、`/hippo:sleep`、`/hippo:deep-sleep` 提供可调用的最小 library runtime；其余扩展命令目前只保留协议语义与宿主映射边界，执行器留待后续阶段实现。
 
 统一输出结构：
 
@@ -34,7 +34,7 @@
 - `structured` 供程序消费
 - `scripts/smoke-test.mjs` 当前以 `/hippo:recall` 与 `/hippo:sleep` 的最小输入输出合同为基准做回归验证
 - `scripts/regression-recall-exposure.mjs` 当前以固定 fixture 验证 `/hippo:recall` 的排序方向与 `exposureTrace`
-- `scripts/regression-runtime-commands.mjs` 当前以固定 fixture 验证 `/hippo:forecast`、`/hippo:reflect`、`/hippo:sleep` 的结构化输出、写入边界与 telemetry
+- `scripts/regression-runtime-commands.mjs` 当前以固定 fixture 验证 `/hippo:forecast`、`/hippo:reflect`、`/hippo:sleep`、`/hippo:deep-sleep` 的结构化输出、写入边界与 telemetry
 
 ## 2. `/hippo:recall`
 
@@ -245,7 +245,7 @@
 
 ## 6. 扩展命令
 
-以下命令在本阶段只保留协议与语义，不实现运行时：
+以下命令中，只有未单列输入输出合同的命令仍处于协议阶段：
 
 ### `/hippo:associate`
 
@@ -258,6 +258,35 @@
 ### `/hippo:deep-sleep`
 
 把已验证的候选知识沉淀到长期层，并同步更新 graph。
+
+#### 输入草案
+
+```ts
+{
+  summary: string;
+  touchedFiles: string[];
+  validation: string[];
+  candidateLayers: MemoryLayer[];
+  sourceEpisodicId?: string;
+  tags?: string[];
+  exposureLevel?: "summary" | "focused" | "full";
+  signalStrength?: "low" | "medium" | "high";
+}
+```
+
+#### 当前最小运行时边界
+
+- 只接受 `decision`、`incident`、`pattern`、`module` 作为长期层晋升目标
+- `validation` 不能为空
+- `signalStrength = low` 时默认不晋升
+- 如提供 `sourceEpisodicId`，会把源 episodic 候选与晋升结果写入 graph 关系
+
+#### 当前回归断言
+
+- `regression:deep-sleep` 先执行 `sleep` 生成候选，再执行 `deep-sleep`
+- 必须新增长期层条目，并返回 `promotedLayers`、`promotedEntryIds`
+- 必须返回 `graphUpdated = true`
+- telemetry 必须保持 `nextCommandHint = /hippo:status`
 
 ### `/hippo:project-onboard`
 
@@ -294,4 +323,4 @@
 - 依赖项
 - 建议的下一条命令
 
-当前 smoke test 仅覆盖 `summary` 暴露层下的 recall / sleep happy path；`focused`、`full` 的暴露轨迹与 incident 优先排序由 `regression:recall` 基于固定 fixture 继续验证。`forecast`、`reflect`、`sleep` 的结构化输出、写入边界与 follow-up telemetry 由 `regression:runtime` 及其单命令入口继续验证，扩展命令仍保留到后续阶段。
+当前 smoke test 仅覆盖 `summary` 暴露层下的 recall / sleep happy path；`focused`、`full` 的暴露轨迹与 incident 优先排序由 `regression:recall` 基于固定 fixture 继续验证。`forecast`、`reflect`、`sleep`、`deep-sleep` 的结构化输出、写入边界、长期层晋升与 follow-up telemetry 由 `regression:runtime` 及其单命令入口继续验证；其余扩展命令仍保留到后续阶段。

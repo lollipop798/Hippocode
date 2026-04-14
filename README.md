@@ -21,6 +21,7 @@ Hippocode 是一套受海马体启发的编码代理记忆框架，面向 Claude
 - 核心命令与记忆协议类型
 - 文件型 `.memory` store 与 graph 读写入口
 - summary-first 的 recall / forecast / reflect / sleep 最小运行时
+- `/hippo:deep-sleep` 的最小长期层晋升执行器
 - `scripts/smoke-test.mjs` 对 recall / sleep happy path 的最小回归验证
 - `fixtures/recall-regression/.memory` 与 `scripts/regression-recall-exposure.mjs` 的 recall 排序 / 暴露轨迹固定回归
 - `fixtures/forecast-regression/.memory`、`fixtures/reflect-regression/.memory`、`fixtures/sleep-regression/.memory` 与 `scripts/regression-runtime-commands.mjs` 的命令级固定回归
@@ -32,7 +33,6 @@ Hippocode 是一套受海马体启发的编码代理记忆框架，面向 Claude
 
 本轮未落地的内容包括：
 
-- deep-sleep 晋升执行器
 - schema runtime validator
 - 真实 hook 自动化
 - 完整 graph 自动构建与复杂扩散排序
@@ -111,13 +111,15 @@ npm run regression:all
 npm run regression:forecast
 npm run regression:reflect
 npm run regression:sleep
+npm run regression:deep-sleep
 npm run clean
 ```
 
 `npm run smoke` 会基于已构建的 `dist/` 产物执行最小回归，验证 `recall` 与 `sleep` 的 happy path，以及 fresh `.memory` 初始化后的 `episodic` 写入链路。
 `npm run validate:memory-schema` 会遍历仓库根 `.memory` 与 `fixtures/*/.memory`，验证 graph 快照与 memory entry 是否满足最小 runtime schema。
 `npm run regression:recall` 会基于 `fixtures/recall-regression/.memory` 里的固定 fixture，验证 recall 的 `summary` / `focused` / `full` 暴露轨迹，并检查 incident 相对 module 的排序优先性。
-`npm run regression:runtime` 会统一执行 `forecast`、`reflect`、`sleep` 的固定回归；对应的单命令入口会读取各自的 `fixtures/*-regression/.memory`，验证计划输出、`episodic` 写入、候选层判断与 `nextCommandHint`/`exposureTrace` 合同。
+`npm run regression:runtime` 会统一执行 `forecast`、`reflect`、`sleep`、`deep-sleep` 的固定回归；对应的单命令入口会读取各自的 `fixtures/*-regression/.memory`，验证计划输出、`episodic` 写入、候选层判断、长期层晋升与 `nextCommandHint`/`exposureTrace` 合同。
+`npm run regression:deep-sleep` 会先通过 `sleep` 生成候选，再验证 `deep-sleep` 是否把候选晋升到 `decision`、`incident`、`pattern`、`module` 长期层，并同步更新 `associative-graph.json`。
 `npm run regression:all` 会串联 `typecheck`、`build`、`validate:memory-schema`、`smoke`、`regression:recall` 与 `regression:runtime`，作为当前 Phase 2 的一键验收入口。
 
 ## npm 发布方向
@@ -132,7 +134,6 @@ npm run clean
 未来会在不打破核心协议的前提下逐步补齐：
 
 - schema 校验
-- deep-sleep 与候选晋升
 - host hooks wiring
 - CLI/scaffold
 - graph 自动生成与 pruning

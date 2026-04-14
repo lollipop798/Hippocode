@@ -37,17 +37,19 @@
 - `.memory` 文件型 store
 - graph 读写入口
 - recall / forecast / reflect / sleep 最小运行时
+- `deep-sleep` 最小晋升执行器
 - Claude / Codex host adapter descriptor
 - `scripts/smoke-test.mjs` 最小回归脚本
 - `src/core/schema.ts` 与 `scripts/validate-memory-schema.mjs`
 - `fixtures/recall-regression/.memory` 与 `scripts/regression-recall-exposure.mjs`
 - `fixtures/forecast-regression/.memory`、`fixtures/reflect-regression/.memory`、`fixtures/sleep-regression/.memory`
 - `scripts/regression-runtime-commands.mjs` 与 `regression:forecast|reflect|sleep|runtime|all`
+- `regression:deep-sleep` 与长期层晋升 / graph 同步回归
 - `.memory` 长期层基线样例与 graph 基线关系
 
 建议 issue：
 
-1. 为 `.memory` store 增加 runtime schema 校验
+1. 扩展 `.memory` store 的 runtime schema 校验与错误报告
 2. 为 recall 增加更稳定的 intent 解析与 focused/full 升级策略
 3. 为 graph 增加自动 upsert 与 pruning
 4. 为 schema validator 增加更细的错误分类与报告
@@ -66,7 +68,7 @@
 
 7. 扩展 reflect 记录结构与候选层判定
 8. 实现 sleep candidate writer
-9. 实现 deep-sleep promotion policy
+9. 扩展 deep-sleep promotion policy，增加更细粒度晋升门槛与冲突处理
 
 ## Phase 4：host adapters
 

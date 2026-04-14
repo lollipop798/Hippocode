@@ -38,6 +38,7 @@ Hippocode 从一开始就按可发布的 TypeScript npm package 组织。
 - 核心类型
 - 文件型 memory store
 - summary-first recall / forecast / reflect / sleep 最小运行时
+- `/hippo:deep-sleep` 最小晋升执行器
 - smoke test 脚本与已构建产物回归入口
 - recall regression fixture 与 exposureTrace / ranking 回归脚本
 - `.memory` 长期层基线样例与 graph 基线关系
@@ -49,7 +50,6 @@ Hippocode 从一开始就按可发布的 TypeScript npm package 组织。
 本轮暂不落：
 
 - schema runtime validator
-- deep-sleep 晋升执行器
 - 完整 graph 自动构建与复杂扩散排序
 - CLI 可执行命令
 - 自动化 hooks wiring
@@ -135,6 +135,7 @@ Recall engine 在当前阶段已实现最小运行时，仍保持轻量启发式
 - `forecast` 的计划步骤、推荐焦点、follow-up 命令与 telemetry 依赖收敛
 - `reflect` 的偏差识别、candidate layers 判定与 `episodic` 写入
 - `sleep` 的候选层判断、晋升建议与 `deep-sleep` 提示
+- `deep-sleep` 的长期层写入、graph 同步与 follow-up telemetry
 
 为了避免文件型 `.memory` 在运行时静默漂移，当前又补入了 `src/core/schema.ts` 与 `scripts/validate-memory-schema.mjs`：
 

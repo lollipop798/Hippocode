@@ -44,6 +44,7 @@
     "regression:forecast": "node ./scripts/regression-runtime-commands.mjs forecast",
     "regression:reflect": "node ./scripts/regression-runtime-commands.mjs reflect",
     "regression:sleep": "node ./scripts/regression-runtime-commands.mjs sleep",
+    "regression:deep-sleep": "node ./scripts/regression-runtime-commands.mjs deep-sleep",
     "regression:runtime": "node ./scripts/regression-runtime-commands.mjs all",
     "regression:all": "npm run typecheck && npm run build && npm run validate:memory-schema && npm run smoke && npm run regression:recall && npm run regression:runtime"
   },

@@ -224,12 +224,84 @@ async function runSleepRegression(projectRoot, runtimeFactory) {
   }
 }
 
+async function countLayerFiles(memoryRoot, layerDirectory) {
+  const entries = await readdir(join(memoryRoot, layerDirectory));
+  return entries.filter((name) => name !== "README.md").length;
+}
+
+async function runDeepSleepRegression(projectRoot, runtimeFactory) {
+  const { tempRoot, memoryRoot } = await createIsolatedMemoryRoot(projectRoot, "sleep-regression");
+
+  try {
+    const now = createFixedNow();
+    const store = runtimeFactory.createFileMemoryStore({ rootDir: memoryRoot, now });
+    const runtime = runtimeFactory.createHippoRuntime({ store, now });
+    const graphBefore = await store.readGraph();
+    const beforeDecisionCount = await countLayerFiles(memoryRoot, "decisions");
+    const beforeIncidentCount = await countLayerFiles(memoryRoot, "incidents");
+    const beforePatternCount = await countLayerFiles(memoryRoot, "patterns");
+    const beforeModuleCount = await countLayerFiles(memoryRoot, "modules");
+
+    const sleepResponse = await runtime.executeSleep({
+      summary: "runtime regression decision candidate should be compressed for deep sleep",
+      touchedFiles: ["src/core/runtime.ts", "src/core/memory-store.ts"],
+      validation: ["build-pass", "regression-pass"],
+      tags: ["pattern", "workflow", "test"],
+      exposureLevel: "focused",
+      signalStrength: "high"
+    });
+
+    const response = await runtime.executeDeepSleep({
+      summary: sleepResponse.payload.structured.summary,
+      touchedFiles: sleepResponse.payload.structured.touchedFiles,
+      validation: sleepResponse.payload.structured.validation,
+      candidateLayers: sleepResponse.payload.structured.candidateLayers,
+      sourceEpisodicId: sleepResponse.payload.structured.episodicEntryId,
+      tags: ["pattern", "workflow", "test"],
+      exposureLevel: "focused",
+      signalStrength: "high"
+    });
+
+    const graphAfter = await store.readGraph();
+    const afterDecisionCount = await countLayerFiles(memoryRoot, "decisions");
+    const afterIncidentCount = await countLayerFiles(memoryRoot, "incidents");
+    const afterPatternCount = await countLayerFiles(memoryRoot, "patterns");
+    const afterModuleCount = await countLayerFiles(memoryRoot, "modules");
+
+    assert(response.status === "ok", "deep-sleep regression 未返回 ok。");
+    assert(response.payload.structured.command === "/hippo:deep-sleep", "deep-sleep command 不正确。");
+    assert(response.payload.structured.graphUpdated === true, "deep-sleep 未更新 graph。");
+    assert(response.payload.structured.promotedEntryIds.length === 4, "deep-sleep 晋升条目数量不正确。");
+
+    const promotedLayers = response.payload.structured.promotedLayers;
+    for (const expectedLayer of ["decision", "incident", "module", "pattern"]) {
+      assert(promotedLayers.includes(expectedLayer), `deep-sleep promotedLayers 缺少 ${expectedLayer}。`);
+    }
+
+    assert(afterDecisionCount === beforeDecisionCount + 1, "deep-sleep 未新增 decision 条目。");
+    assert(afterIncidentCount === beforeIncidentCount + 1, "deep-sleep 未新增 incident 条目。");
+    assert(afterPatternCount === beforePatternCount + 1, "deep-sleep 未新增 pattern 条目。");
+    assert(afterModuleCount === beforeModuleCount + 1, "deep-sleep 未新增 module 条目。");
+    assert(graphAfter.nodes.length >= graphBefore.nodes.length + 4, "deep-sleep graph nodes 未按预期增长。");
+    assert(graphAfter.edges.length >= graphBefore.edges.length + 4, "deep-sleep graph edges 未按预期增长。");
+    assertTelemetry(response, "focused", ["focused"], "/hippo:status");
+
+    return {
+      promotedEntries: response.payload.structured.promotedEntryIds.length,
+      graphNodes: graphAfter.nodes.length,
+      graphEdges: graphAfter.edges.length
+    };
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+}
+
 async function run() {
   const projectRoot = process.cwd();
   const mode = process.argv[2] ?? "all";
   const runtimeFactory = await loadRuntime(projectRoot);
 
-  const selectedModes = mode === "all" ? ["forecast", "reflect", "sleep"] : [mode];
+  const selectedModes = mode === "all" ? ["forecast", "reflect", "sleep", "deep-sleep"] : [mode];
   const results = [];
 
   for (const selectedMode of selectedModes) {
@@ -245,6 +317,11 @@ async function run() {
 
     if (selectedMode === "sleep") {
       results.push(["sleep", await runSleepRegression(projectRoot, runtimeFactory)]);
+      continue;
+    }
+
+    if (selectedMode === "deep-sleep") {
+      results.push(["deep-sleep", await runDeepSleepRegression(projectRoot, runtimeFactory)]);
       continue;
     }
 

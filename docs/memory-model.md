@@ -220,6 +220,7 @@ Recall engine 默认遵循以下顺序：
 - 先写入 `episodic`
 - 候选条目需要进一步验证
 - 只有通过 `deep-sleep` 或等价流程，才晋升到长期层
+- 当前最小 `deep-sleep` 会把通过验证的候选写入 `decision`、`incident`、`pattern`、`module` 层，并同步更新 `associative-graph.json`
 
 ## 9. 模板建议
 
@@ -246,10 +247,10 @@ Recall engine 默认遵循以下顺序：
 - recall / reflect / sleep 的读写边界
 - 文件型 memory store 的读写入口
 - episodic 写入与 graph 文件 IO
+- deep-sleep 的最小长期层晋升与 graph upsert
 
 本轮尚未实现：
 
 - schema runtime validator
 - graph 自动生成器
-- deep-sleep 晋升机制
 - 复杂 graph 扩散与排序策略

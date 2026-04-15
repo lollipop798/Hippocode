@@ -45,6 +45,7 @@
 - `fixtures/forecast-regression/.memory`、`fixtures/reflect-regression/.memory`、`fixtures/sleep-regression/.memory`
 - `scripts/regression-runtime-commands.mjs` 与 `regression:forecast|reflect|sleep|runtime|all`
 - `regression:deep-sleep` 与长期层晋升 / graph 同步回归
+- 最小 CLI 入口，支持 `validate`、`recall`、`deep-sleep`
 - `.memory` 长期层基线样例与 graph 基线关系
 
 建议 issue：
@@ -54,7 +55,7 @@
 3. 为 graph 增加自动 upsert 与 pruning
 4. 为 schema validator 增加更细的错误分类与报告
 5. 为 recall 增加 fixture 测试与评分基准
-6. 为命令运行时增加真实 CLI / host 接口适配
+6. 扩展 CLI / host 接口适配，并为 CLI 增加更多子命令与回归
 
 ## Phase 3：reflect / sleep / deep-sleep
 
@@ -87,14 +88,14 @@
 
 目标：
 
-- 提供最小 CLI 入口
+- 扩展最小 CLI 入口
 - 提供项目初始化与模板灌入能力
 - 让 `/hippo:project-onboard` 有明确载体
 
 后续建议：
 
-- 构建 `hippocode init`
-- 构建 `hippocode validate`
+- 扩展 `hippocode init`
+- 扩展 `hippocode recall` / `hippocode deep-sleep` 的输入模式
 - 构建本地模板同步器
 
 ## 下一轮优先级

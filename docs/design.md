@@ -41,6 +41,7 @@ Hippocode 从一开始就按可发布的 TypeScript npm package 组织。
 - `/hippo:deep-sleep` 最小晋升执行器
 - smoke test 脚本与已构建产物回归入口
 - recall regression fixture 与 exposureTrace / ranking 回归脚本
+- 最小 CLI 入口，支持 `validate`、`recall`、`deep-sleep`
 - `.memory` 长期层基线样例与 graph 基线关系
 - Claude / Codex host adapter descriptor
 - 命令协议文档
@@ -51,7 +52,7 @@ Hippocode 从一开始就按可发布的 TypeScript npm package 组织。
 
 - schema runtime validator
 - 完整 graph 自动构建与复杂扩散排序
-- CLI 可执行命令
+- 完整 CLI / scaffold 命令集
 - 自动化 hooks wiring
 
 ## 4. 六层架构
@@ -186,7 +187,13 @@ Hippocode 的默认暴露策略固定为三层：
 - 根入口导出共享 API
 - `./core` 导出共享协议
 - `./adapters` 导出宿主边界
-- `./cli` 预留 CLI / scaffold 层入口
+- `./cli` 导出 CLI 入口与子命令描述
+
+当前 `bin` 入口为 `hippocode`，最小支持：
+
+- `hippocode validate`
+- `hippocode recall`
+- `hippocode deep-sleep`
 
 ## 9. 非目标
 

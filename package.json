@@ -16,6 +16,9 @@
   ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "hippocode": "./dist/cli/bin.js"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -36,6 +39,7 @@
   },
   "scripts": {
     "build": "tsc --build tsconfig.build.json",
+    "cli": "node ./dist/cli/bin.js",
     "clean": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true }); rmSync('tsconfig.tsbuildinfo', { force: true }); rmSync('tsconfig.build.tsbuildinfo', { force: true });\"",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "validate:memory-schema": "node ./scripts/validate-memory-schema.mjs",

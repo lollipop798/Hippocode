@@ -22,6 +22,7 @@ Hippocode 是一套受海马体启发的编码代理记忆框架，面向 Claude
 - 文件型 `.memory` store 与 graph 读写入口
 - summary-first 的 recall / forecast / reflect / sleep 最小运行时
 - `/hippo:deep-sleep` 的最小长期层晋升执行器
+- 最小 CLI 可执行入口，支持 `validate`、`recall`、`deep-sleep`
 - `scripts/smoke-test.mjs` 对 recall / sleep happy path 的最小回归验证
 - `fixtures/recall-regression/.memory` 与 `scripts/regression-recall-exposure.mjs` 的 recall 排序 / 暴露轨迹固定回归
 - `fixtures/forecast-regression/.memory`、`fixtures/reflect-regression/.memory`、`fixtures/sleep-regression/.memory` 与 `scripts/regression-runtime-commands.mjs` 的命令级固定回归
@@ -36,7 +37,7 @@ Hippocode 是一套受海马体启发的编码代理记忆框架，面向 Claude
 - schema runtime validator
 - 真实 hook 自动化
 - 完整 graph 自动构建与复杂扩散排序
-- 独立 CLI 可执行程序
+- CLI 脚手架命令与项目初始化器
 
 ## 仓库结构
 
@@ -112,6 +113,7 @@ npm run regression:forecast
 npm run regression:reflect
 npm run regression:sleep
 npm run regression:deep-sleep
+npm run cli -- help
 npm run clean
 ```
 
@@ -122,6 +124,15 @@ npm run clean
 `npm run regression:deep-sleep` 会先通过 `sleep` 生成候选，再验证 `deep-sleep` 是否把候选晋升到 `decision`、`incident`、`pattern`、`module` 长期层，并同步更新 `associative-graph.json`。
 `npm run regression:deep-sleep-partial` 会验证 `deep-sleep` 的拒绝路径：当 validation 缺失或 `signalStrength = low` 时，命令必须返回 `partial`、保留 `skippedReasons`、不写入长期层且不更新 graph。
 `npm run regression:all` 会串联 `typecheck`、`build`、`validate:memory-schema`、`smoke`、`regression:recall` 与 `regression:runtime`，作为当前 Phase 2 的一键验收入口。
+`npm run cli -- help` 会运行当前最小 CLI，可直接调用 `validate`、`recall`、`deep-sleep` 三个子命令。
+
+CLI 示例：
+
+```bash
+npm run cli -- validate --memory-root .memory
+npm run cli -- recall --prompt "stabilize runtime regression" --scope task --json
+npm run cli -- deep-sleep --summary "promote tested runtime knowledge" --candidate-layer decision --candidate-layer pattern --validation build-pass --signal-strength high
+```
 
 ## npm 发布方向
 
@@ -136,7 +147,7 @@ npm run clean
 
 - schema 校验
 - host hooks wiring
-- CLI/scaffold
+- CLI/scaffold 的更多子命令
 - graph 自动生成与 pruning
 
 ## 关键文档

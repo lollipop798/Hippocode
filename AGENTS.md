@@ -130,13 +130,14 @@ Phase 1 的仓库初始化已经完成，当前进入 Phase 2 MVP。
 - 实现 Claude / Codex 的 host adapter descriptor
 - 继续完善 `.memory`、`.claude`、`.codex` 的协议与说明
 - 为 `decisions`、`incidents`、`patterns`、`modules` 维护高信号示例条目，作为 recall 基线样本
+- 维护最小 CLI 入口，当前允许实现 `validate`、`recall`、`deep-sleep` 三个子命令
 
 当前阶段暂不实现：
 
 - schema runtime validator
 - 真实 hook 自动化 wiring
 - 完整 graph 自动构建与复杂扩散排序
-- 独立 CLI 可执行程序与脚手架命令
+- 完整 CLI 脚手架命令与项目初始化器
 
 ## 8. 记忆写入规则
 

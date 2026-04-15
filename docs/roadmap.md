@@ -46,6 +46,7 @@
 - `scripts/regression-runtime-commands.mjs` 与 `regression:forecast|reflect|sleep|runtime|all`
 - `regression:deep-sleep` 与长期层晋升 / graph 同步回归
 - 最小 CLI 入口，支持 `validate`、`recall`、`deep-sleep`
+- `scripts/regression-cli.mjs` 与 `regression:cli`，覆盖最小 CLI 的固定回归
 - `.memory` 长期层基线样例与 graph 基线关系
 
 建议 issue：
@@ -55,7 +56,7 @@
 3. 为 graph 增加自动 upsert 与 pruning
 4. 为 schema validator 增加更细的错误分类与报告
 5. 为 recall 增加 fixture 测试与评分基准
-6. 扩展 CLI / host 接口适配，并为 CLI 增加更多子命令与回归
+6. 扩展 CLI / host 接口适配，并为 CLI 增加更多子命令、错误路径覆盖与回归
 
 ## Phase 3：reflect / sleep / deep-sleep
 

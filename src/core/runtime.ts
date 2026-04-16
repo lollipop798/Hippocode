@@ -23,6 +23,8 @@ import type {
   ReflectCommandInput,
   ReflectInsight,
   RiskLevel,
+  StatusCommandInput,
+  StatusResult,
   SleepCommandInput,
   SleepEntry
 } from "./types.js";
@@ -39,6 +41,7 @@ export interface HippoRuntime {
   executeReflect(input: ReflectCommandInput): Promise<CommandEnvelope<ReflectInsight>>;
   executeSleep(input: SleepCommandInput): Promise<CommandEnvelope<SleepEntry>>;
   executeDeepSleep(input: DeepSleepCommandInput): Promise<CommandEnvelope<DeepSleepResult>>;
+  executeStatus(input?: StatusCommandInput): Promise<CommandEnvelope<StatusResult>>;
   executeCommand(
     command: HippoCommandName,
     input:
@@ -47,12 +50,14 @@ export interface HippoRuntime {
       | ReflectCommandInput
       | SleepCommandInput
       | DeepSleepCommandInput
+      | StatusCommandInput
   ): Promise<
     | CommandEnvelope<RecallResult>
     | CommandEnvelope<ForecastPlan>
     | CommandEnvelope<ReflectInsight>
     | CommandEnvelope<SleepEntry>
     | CommandEnvelope<DeepSleepResult>
+    | CommandEnvelope<StatusResult>
   >;
 }
 
@@ -375,6 +380,63 @@ export function createHippoRuntime(options: HippoRuntimeOptions): HippoRuntime {
     };
   }
 
+  async function executeStatus(
+    input: StatusCommandInput = {}
+  ): Promise<CommandEnvelope<StatusResult>> {
+    const entries = await options.store.queryEntries({
+      includeArchived: input.includeArchived ?? false,
+      exposureLevel: input.exposureLevel ?? "summary",
+      limit: 2000
+    });
+    const graph = await options.store.readGraph();
+    const layerSummary = summarizeLayers(entries);
+    const episodicEntries = entries.filter((entry) => entry.layer === "episodic");
+    const candidateBacklog = episodicEntries.filter(isCandidateEpisodicEntry).length;
+    const promotableCandidates = episodicEntries.filter(isPromotableCandidateEntry).length;
+    const recentLimit = Math.max(input.recentLimit ?? 5, 1);
+    const recentEpisodicIds = episodicEntries.slice(0, recentLimit).map((entry) => entry.id);
+    const healthSignals = buildStatusHealthSignals({
+      graph,
+      layerSummary,
+      candidateBacklog,
+      promotableCandidates
+    });
+
+    const structured: StatusResult = {
+      command: "/hippo:status",
+      totalEntries: entries.length,
+      graphNodes: graph.nodes.length,
+      graphEdges: graph.edges.length,
+      layerSummary,
+      candidateBacklog,
+      promotableCandidates,
+      recentEpisodicIds,
+      healthSignals
+    };
+
+    return {
+      status: healthSignals.some((signal) => signal.level === "warning") ? "partial" : "ok",
+      payload: {
+        humanReadable: summarizeText(
+          `当前记忆状态：共 ${entries.length} 条条目，graph ${graph.nodes.length} 个节点 / ${graph.edges.length} 条边，候选积压 ${candidateBacklog} 条，可晋升 ${promotableCandidates} 条。`,
+          260
+        ),
+        structured
+      },
+      telemetry: {
+        confidence: 0.83,
+        exposureLevel: input.exposureLevel ?? "summary",
+        dependencies: uniqueStrings([
+          ...layerSummary.map((layer) => `${layer.layer}:${layer.entries}`),
+          `graph:nodes:${graph.nodes.length}`,
+          `graph:edges:${graph.edges.length}`
+        ]),
+        exposureTrace: [input.exposureLevel ?? "summary"],
+        nextCommandHint: candidateBacklog > 0 ? "/hippo:deep-sleep" : "/hippo:recall"
+      }
+    };
+  }
+
   async function executeCommand(
     command: HippoCommandName,
     input:
@@ -383,12 +445,14 @@ export function createHippoRuntime(options: HippoRuntimeOptions): HippoRuntime {
       | ReflectCommandInput
       | SleepCommandInput
       | DeepSleepCommandInput
+      | StatusCommandInput
   ): Promise<
     | CommandEnvelope<RecallResult>
     | CommandEnvelope<ForecastPlan>
     | CommandEnvelope<ReflectInsight>
     | CommandEnvelope<SleepEntry>
     | CommandEnvelope<DeepSleepResult>
+    | CommandEnvelope<StatusResult>
   > {
     switch (command) {
       case "/hippo:recall":
@@ -401,6 +465,8 @@ export function createHippoRuntime(options: HippoRuntimeOptions): HippoRuntime {
         return executeSleep(input as SleepCommandInput);
       case "/hippo:deep-sleep":
         return executeDeepSleep(input as DeepSleepCommandInput);
+      case "/hippo:status":
+        return executeStatus(input as StatusCommandInput);
       default:
         throw new Error(`当前运行时尚未实现命令 ${command}`);
     }
@@ -412,6 +478,7 @@ export function createHippoRuntime(options: HippoRuntimeOptions): HippoRuntime {
     executeReflect,
     executeSleep,
     executeDeepSleep,
+    executeStatus,
     executeCommand
   };
 }
@@ -543,6 +610,106 @@ function determineSleepCandidateLayers(input: SleepCommandInput): MemoryLayer[] 
   }
 
   return uniqueStrings(layers) as MemoryLayer[];
+}
+
+function summarizeLayers(entries: MemoryEntry[]): StatusResult["layerSummary"] {
+  const counts = new Map<MemoryLayer, number>();
+
+  for (const entry of entries) {
+    counts.set(entry.layer, (counts.get(entry.layer) ?? 0) + 1);
+  }
+
+  return ["project", "decision", "incident", "pattern", "module", "episodic", "archive"].map(
+    (layer) => ({
+      layer: layer as MemoryLayer,
+      entries: counts.get(layer as MemoryLayer) ?? 0
+    })
+  );
+}
+
+function isCandidateEpisodicEntry(entry: MemoryEntry): boolean {
+  const command = readMetadataString(entry.metadata, "command");
+  return command === "/hippo:reflect" || command === "/hippo:sleep";
+}
+
+function isPromotableCandidateEntry(entry: MemoryEntry): boolean {
+  if (!isCandidateEpisodicEntry(entry)) {
+    return false;
+  }
+
+  if (entry.metadata?.promoteToLongTerm === true) {
+    return true;
+  }
+
+  return readMetadataStringArray(entry.metadata, "candidateLayers").some((layer) =>
+    isPromotableMemoryLayer(layer as MemoryLayer)
+  );
+}
+
+function buildStatusHealthSignals(input: {
+  graph: MemoryGraphSnapshot;
+  layerSummary: StatusResult["layerSummary"];
+  candidateBacklog: number;
+  promotableCandidates: number;
+}): StatusResult["healthSignals"] {
+  const signals: StatusResult["healthSignals"] = [];
+  const episodicCount =
+    input.layerSummary.find((summary) => summary.layer === "episodic")?.entries ?? 0;
+  const longTermCount = input.layerSummary
+    .filter((summary) =>
+      ["decision", "incident", "pattern", "module"].includes(summary.layer)
+    )
+    .reduce((total, summary) => total + summary.entries, 0);
+
+  if (input.graph.nodes.length === 0 || input.graph.edges.length === 0) {
+    signals.push({ level: "warning", message: "associative graph 仍为空或边数不足。" });
+  } else {
+    signals.push({ level: "info", message: "associative graph 已建立基础关系。" });
+  }
+
+  if (longTermCount === 0) {
+    signals.push({ level: "warning", message: "长期层尚无稳定记忆条目。" });
+  } else {
+    signals.push({ level: "info", message: `长期层当前共有 ${longTermCount} 条条目。` });
+  }
+
+  if (input.candidateBacklog >= 3) {
+    signals.push({
+      level: "warning",
+      message: `episodic 候选积压 ${input.candidateBacklog} 条，建议整理 sleep / deep-sleep。`
+    });
+  } else if (episodicCount > 0) {
+    signals.push({ level: "info", message: `episodic 当前有 ${episodicCount} 条最近记忆。` });
+  }
+
+  if (input.promotableCandidates > 0) {
+    signals.push({
+      level: "info",
+      message: `存在 ${input.promotableCandidates} 条可晋升候选，可进一步执行 /hippo:deep-sleep。`
+    });
+  }
+
+  if (signals.length === 0) {
+    signals.push({ level: "warning", message: "当前状态信息不足，建议先执行 recall 或 sleep。" });
+  }
+
+  return signals;
+}
+
+function readMetadataString(
+  metadata: MemoryEntry["metadata"] | undefined,
+  key: string
+): string | undefined {
+  const value = metadata?.[key];
+  return typeof value === "string" ? value : undefined;
+}
+
+function readMetadataStringArray(
+  metadata: MemoryEntry["metadata"] | undefined,
+  key: string
+): string[] {
+  const value = metadata?.[key];
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 }
 
 function buildEpisodicEntry(options: {

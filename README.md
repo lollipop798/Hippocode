@@ -22,7 +22,8 @@ Hippocode 是一套受海马体启发的编码代理记忆框架，面向 Claude
 - 文件型 `.memory` store 与 graph 读写入口
 - summary-first 的 recall / forecast / reflect / sleep 最小运行时
 - `/hippo:deep-sleep` 的最小长期层晋升执行器
-- 最小 CLI 可执行入口，支持 `validate`、`recall`、`forecast`、`reflect`、`sleep`、`deep-sleep`
+- `/hippo:status` 的最小状态汇总执行器
+- 最小 CLI 可执行入口，支持 `validate`、`recall`、`forecast`、`reflect`、`sleep`、`status`、`deep-sleep`
 - `scripts/smoke-test.mjs` 对 recall / sleep happy path 的最小回归验证
 - `fixtures/recall-regression/.memory` 与 `scripts/regression-recall-exposure.mjs` 的 recall 排序 / 暴露轨迹固定回归
 - `fixtures/forecast-regression/.memory`、`fixtures/reflect-regression/.memory`、`fixtures/sleep-regression/.memory` 与 `scripts/regression-runtime-commands.mjs` 的命令级固定回归
@@ -113,6 +114,7 @@ npm run regression:all
 npm run regression:forecast
 npm run regression:reflect
 npm run regression:sleep
+npm run regression:status
 npm run regression:deep-sleep
 npm run cli -- help
 npm run clean
@@ -121,12 +123,12 @@ npm run clean
 `npm run smoke` 会基于已构建的 `dist/` 产物执行最小回归，验证 `recall` 与 `sleep` 的 happy path，以及 fresh `.memory` 初始化后的 `episodic` 写入链路。
 `npm run validate:memory-schema` 会遍历仓库根 `.memory` 与 `fixtures/*/.memory`，验证 graph 快照与 memory entry 是否满足最小 runtime schema。
 `npm run regression:recall` 会基于 `fixtures/recall-regression/.memory` 里的固定 fixture，验证 recall 的 `summary` / `focused` / `full` 暴露轨迹，并检查 incident 相对 module 的排序优先性。
-`npm run regression:runtime` 会统一执行 `forecast`、`reflect`、`sleep`、`deep-sleep` 的固定回归；对应的单命令入口会读取各自的 `fixtures/*-regression/.memory`，验证计划输出、`episodic` 写入、候选层判断、长期层晋升与 `nextCommandHint`/`exposureTrace` 合同。
+`npm run regression:runtime` 会统一执行 `forecast`、`reflect`、`sleep`、`status`、`deep-sleep` 的固定回归；对应的单命令入口会读取各自的 `fixtures/*-regression/.memory`，验证计划输出、`episodic` 写入、候选层判断、状态汇总、长期层晋升与 `nextCommandHint`/`exposureTrace` 合同。
 `npm run regression:deep-sleep` 会先通过 `sleep` 生成候选，再验证 `deep-sleep` 是否把候选晋升到 `decision`、`incident`、`pattern`、`module` 长期层，并同步更新 `associative-graph.json`。
 `npm run regression:deep-sleep-partial` 会验证 `deep-sleep` 的拒绝路径：当 validation 缺失或 `signalStrength = low` 时，命令必须返回 `partial`、保留 `skippedReasons`、不写入长期层且不更新 graph。
-`npm run regression:cli` 会基于 `dist/cli/bin.js` 对当前最小 CLI 做固定回归，覆盖 `validate`、`recall`、`forecast`、`reflect`、`sleep` 与 `deep-sleep` 六个子命令的 JSON 输出合同。
+`npm run regression:cli` 会基于 `dist/cli/bin.js` 对当前最小 CLI 做固定回归，覆盖 `validate`、`recall`、`forecast`、`reflect`、`sleep`、`status` 与 `deep-sleep` 七个子命令的 JSON 输出合同。
 `npm run regression:all` 会串联 `typecheck`、`build`、`validate:memory-schema`、`smoke`、`regression:recall`、`regression:runtime` 与 `regression:cli`，作为当前 Phase 2 的一键验收入口。
-`npm run cli -- help` 会运行当前最小 CLI，可直接调用 `validate`、`recall`、`forecast`、`reflect`、`sleep`、`deep-sleep` 六个子命令。
+`npm run cli -- help` 会运行当前最小 CLI，可直接调用 `validate`、`recall`、`forecast`、`reflect`、`sleep`、`status`、`deep-sleep` 七个子命令。
 
 CLI 示例：
 
@@ -136,6 +138,7 @@ npm run cli -- recall --prompt "stabilize runtime regression" --scope task --jso
 npm run cli -- forecast --task "stabilize runtime regression" --constraint summary-first --constraint package-first --json
 npm run cli -- reflect --session-event "validation pass" --session-event "runtime signal fail" --outcome "回归脚本已修正，但仍有覆盖缺口" --json
 npm run cli -- sleep --summary "compress runtime regression knowledge" --touched-file src/core/runtime.ts --validation build-pass --signal-strength high --json
+npm run cli -- status --recent-limit 3 --json
 npm run cli -- deep-sleep --summary "promote tested runtime knowledge" --candidate-layer decision --candidate-layer pattern --validation build-pass --signal-strength high
 ```
 

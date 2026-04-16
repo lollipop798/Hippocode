@@ -273,6 +273,12 @@ export interface DeepSleepCommandInput {
   signalStrength?: SleepSignalStrength;
 }
 
+export interface StatusCommandInput {
+  exposureLevel?: ExposureLevel;
+  includeArchived?: boolean;
+  recentLimit?: number;
+}
+
 export interface DeepSleepResult {
   command: "/hippo:deep-sleep";
   summary: string;
@@ -281,6 +287,28 @@ export interface DeepSleepResult {
   promotedEntryIds: string[];
   graphUpdated: boolean;
   skippedReasons: string[];
+}
+
+export interface StatusLayerSummary {
+  layer: MemoryLayer;
+  entries: number;
+}
+
+export interface StatusHealthSignal {
+  level: "info" | "warning";
+  message: string;
+}
+
+export interface StatusResult {
+  command: "/hippo:status";
+  totalEntries: number;
+  graphNodes: number;
+  graphEdges: number;
+  layerSummary: StatusLayerSummary[];
+  candidateBacklog: number;
+  promotableCandidates: number;
+  recentEpisodicIds: string[];
+  healthSignals: StatusHealthSignal[];
 }
 
 export interface MemoryStoreQuery {

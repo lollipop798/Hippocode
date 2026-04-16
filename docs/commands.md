@@ -4,7 +4,7 @@
 
 所有命令统一使用 `/hippo:` 命名空间，避免与宿主内置命令冲突。
 
-当前仓库已经为 `/hippo:recall`、`/hippo:forecast`、`/hippo:reflect`、`/hippo:sleep`、`/hippo:deep-sleep` 提供可调用的最小 library runtime；其余扩展命令目前只保留协议语义与宿主映射边界，执行器留待后续阶段实现。
+当前仓库已经为 `/hippo:recall`、`/hippo:forecast`、`/hippo:reflect`、`/hippo:sleep`、`/hippo:deep-sleep`、`/hippo:status` 提供可调用的最小 library runtime；其余扩展命令目前只保留协议语义与宿主映射边界，执行器留待后续阶段实现。
 
 统一输出结构：
 
@@ -34,7 +34,7 @@
 - `structured` 供程序消费
 - `scripts/smoke-test.mjs` 当前以 `/hippo:recall` 与 `/hippo:sleep` 的最小输入输出合同为基准做回归验证
 - `scripts/regression-recall-exposure.mjs` 当前以固定 fixture 验证 `/hippo:recall` 的排序方向与 `exposureTrace`
-- `scripts/regression-runtime-commands.mjs` 当前以固定 fixture 验证 `/hippo:forecast`、`/hippo:reflect`、`/hippo:sleep`、`/hippo:deep-sleep` 的结构化输出、写入边界与 telemetry
+- `scripts/regression-runtime-commands.mjs` 当前以固定 fixture 验证 `/hippo:forecast`、`/hippo:reflect`、`/hippo:sleep`、`/hippo:status`、`/hippo:deep-sleep` 的结构化输出、写入边界与 telemetry
 
 ## 2. `/hippo:recall`
 
@@ -301,6 +301,13 @@
 
 查看当前记忆系统的健康状态、覆盖度和待处理候选。
 
+### 当前最小实现
+
+- 只读 `.memory` 与 `associative-graph.json`
+- 汇总各层条目数量、graph 节点/边数量、候选积压与最近 episodic id
+- 不写入任何长期层或 episodic
+- 当前 runtime 默认在存在候选积压时返回 `nextCommandHint = /hippo:deep-sleep`，否则返回 `/hippo:recall`
+
 ## 7. 技能映射约定
 
 命令协议是共享抽象，宿主可通过 skills / hooks 映射这些命令。
@@ -324,4 +331,4 @@
 - 依赖项
 - 建议的下一条命令
 
-当前 smoke test 仅覆盖 `summary` 暴露层下的 recall / sleep happy path；`focused`、`full` 的暴露轨迹与 incident 优先排序由 `regression:recall` 基于固定 fixture 继续验证。`forecast`、`reflect`、`sleep`、`deep-sleep` 的结构化输出、写入边界、长期层晋升与 follow-up telemetry 由 `regression:runtime` 及其单命令入口继续验证；其余扩展命令仍保留到后续阶段。
+当前 smoke test 仅覆盖 `summary` 暴露层下的 recall / sleep happy path；`focused`、`full` 的暴露轨迹与 incident 优先排序由 `regression:recall` 基于固定 fixture 继续验证。`forecast`、`reflect`、`sleep`、`status`、`deep-sleep` 的结构化输出、写入边界、状态汇总、长期层晋升与 follow-up telemetry 由 `regression:runtime` 及其单命令入口继续验证；其余扩展命令仍保留到后续阶段。

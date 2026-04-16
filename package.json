@@ -48,6 +48,7 @@
     "regression:forecast": "node ./scripts/regression-runtime-commands.mjs forecast",
     "regression:reflect": "node ./scripts/regression-runtime-commands.mjs reflect",
     "regression:sleep": "node ./scripts/regression-runtime-commands.mjs sleep",
+    "regression:status": "node ./scripts/regression-runtime-commands.mjs status",
     "regression:deep-sleep": "node ./scripts/regression-runtime-commands.mjs deep-sleep",
     "regression:deep-sleep-partial": "node ./scripts/regression-runtime-commands.mjs deep-sleep-partial",
     "regression:cli": "node ./scripts/regression-cli.mjs",

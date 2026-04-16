@@ -39,9 +39,10 @@ Hippocode 从一开始就按可发布的 TypeScript npm package 组织。
 - 文件型 memory store
 - summary-first recall / forecast / reflect / sleep 最小运行时
 - `/hippo:deep-sleep` 最小晋升执行器
+- `/hippo:status` 最小状态汇总执行器
 - smoke test 脚本与已构建产物回归入口
 - recall regression fixture 与 exposureTrace / ranking 回归脚本
-- 最小 CLI 入口，支持 `validate`、`recall`、`forecast`、`reflect`、`sleep`、`deep-sleep`
+- 最小 CLI 入口，支持 `validate`、`recall`、`forecast`、`reflect`、`sleep`、`status`、`deep-sleep`
 - `.memory` 长期层基线样例与 graph 基线关系
 - Claude / Codex host adapter descriptor
 - 命令协议文档
@@ -137,6 +138,7 @@ Recall engine 在当前阶段已实现最小运行时，仍保持轻量启发式
 - `reflect` 的偏差识别、candidate layers 判定与 `episodic` 写入
 - `sleep` 的候选层判断、晋升建议与 `deep-sleep` 提示
 - `deep-sleep` 的长期层写入、graph 同步与 follow-up telemetry
+- `status` 的记忆层统计、graph 健康度与候选积压汇总
 
 为了避免文件型 `.memory` 在运行时静默漂移，当前又补入了 `src/core/schema.ts` 与 `scripts/validate-memory-schema.mjs`：
 
@@ -196,6 +198,7 @@ Hippocode 的默认暴露策略固定为三层：
 - `hippocode forecast`
 - `hippocode reflect`
 - `hippocode sleep`
+- `hippocode status`
 - `hippocode deep-sleep`
 
 ## 9. 非目标

@@ -224,6 +224,47 @@ async function runSleepRegression(projectRoot, runtimeFactory) {
   }
 }
 
+async function runStatusRegression(projectRoot, runtimeFactory) {
+  const { tempRoot, memoryRoot } = await createIsolatedMemoryRoot(projectRoot, "sleep-regression");
+
+  try {
+    const now = createFixedNow();
+    const store = runtimeFactory.createFileMemoryStore({ rootDir: memoryRoot, now });
+    const runtime = runtimeFactory.createHippoRuntime({ store, now });
+
+    const response = await runtime.executeStatus({
+      exposureLevel: "summary",
+      recentLimit: 3
+    });
+
+    assert(response.status !== "error", "status regression 返回 error。");
+    assert(response.payload.structured.command === "/hippo:status", "status command 不正确。");
+    assert(response.payload.structured.totalEntries === 6, `status totalEntries 期望 6，实际 ${response.payload.structured.totalEntries}`);
+    assert(response.payload.structured.graphNodes === 4, `status graphNodes 期望 4，实际 ${response.payload.structured.graphNodes}`);
+    assert(response.payload.structured.graphEdges === 3, `status graphEdges 期望 3，实际 ${response.payload.structured.graphEdges}`);
+    assert(
+      response.payload.structured.layerSummary.some(
+        (item) => item.layer === "episodic" && item.entries === 0
+      ),
+      "status 未返回 episodic 层统计。"
+    );
+    assert(
+      Array.isArray(response.payload.structured.healthSignals) &&
+        response.payload.structured.healthSignals.length > 0,
+      "status healthSignals 为空。"
+    );
+    assertTelemetry(response, "summary", ["summary"], "/hippo:recall");
+
+    return {
+      totalEntries: response.payload.structured.totalEntries,
+      graphNodes: response.payload.structured.graphNodes,
+      graphEdges: response.payload.structured.graphEdges
+    };
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+}
+
 async function countLayerFiles(memoryRoot, layerDirectory) {
   const entries = await readdir(join(memoryRoot, layerDirectory));
   return entries.filter((name) => name !== "README.md").length;
@@ -373,7 +414,7 @@ async function run() {
 
   const selectedModes =
     mode === "all"
-      ? ["forecast", "reflect", "sleep", "deep-sleep", "deep-sleep-partial"]
+      ? ["forecast", "reflect", "sleep", "status", "deep-sleep", "deep-sleep-partial"]
       : [mode];
   const results = [];
 
@@ -390,6 +431,11 @@ async function run() {
 
     if (selectedMode === "sleep") {
       results.push(["sleep", await runSleepRegression(projectRoot, runtimeFactory)]);
+      continue;
+    }
+
+    if (selectedMode === "status") {
+      results.push(["status", await runStatusRegression(projectRoot, runtimeFactory)]);
       continue;
     }
 

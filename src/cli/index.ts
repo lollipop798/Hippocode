@@ -16,6 +16,7 @@ import {
   type RecallResult,
   type ReflectCommandInput,
   type RiskLevel,
+  type StatusCommandInput,
   type SleepCommandInput
 } from "../core/types.js";
 
@@ -27,6 +28,7 @@ const CLI_SUBCOMMANDS = [
   "forecast",
   "reflect",
   "sleep",
+  "status",
   "deep-sleep"
 ] as const;
 const PROMOTABLE_MEMORY_LAYERS = ["decision", "incident", "pattern", "module"] as const;
@@ -152,6 +154,8 @@ export async function runCli(argv: string[], options: CliRunOptions = {}): Promi
         return await runReflectCommand(parsed.options, cwd, io);
       case "sleep":
         return await runSleepCommand(parsed.options, cwd, io);
+      case "status":
+        return await runStatusCommand(parsed.options, cwd, io);
       case "deep-sleep":
         return await runDeepSleepCommand(parsed.options, cwd, io);
       default:
@@ -396,6 +400,33 @@ async function runSleepCommand(
   return response.status === "error" ? 1 : 0;
 }
 
+async function runStatusCommand(
+  options: Map<string, string[]>,
+  cwd: string,
+  io: CliIo
+): Promise<number> {
+  const input: StatusCommandInput = {};
+  const exposure = getStringOption(options, "exposure");
+  const includeArchived = getBooleanOption(options, "include-archived");
+  const recentLimit = getStringOption(options, "recent-limit");
+
+  if (exposure) {
+    input.exposureLevel = parseExposureLevel(exposure);
+  }
+
+  if (includeArchived) {
+    input.includeArchived = true;
+  }
+
+  if (recentLimit) {
+    input.recentLimit = parsePositiveInteger(recentLimit, "recent-limit");
+  }
+
+  const response = await createRuntime(cwd, options).executeStatus(input);
+  renderEnvelope(response, getBooleanOption(options, "json"), io);
+  return response.status === "error" ? 1 : 0;
+}
+
 async function runDeepSleepCommand(
   options: Map<string, string[]>,
   cwd: string,
@@ -479,6 +510,7 @@ function renderHelp(): string {
     "  hippocode forecast --task <text> [--constraint <text>] [--dependency <id>] [--risk-profile low|medium|high] [--exposure summary|focused|full] [--memory-root <path>] [--json]",
     "  hippocode reflect --session-event <text> [--session-event <text>...] --outcome <text> [--anomaly <text>] [--lesson <text>] [--time-range <iso-interval>] [--memory-root <path>] [--json]",
     "  hippocode sleep --summary <text> [--touched-file <path>] [--validation <item>] [--tag <tag>] [--exposure summary|focused|full] [--signal-strength low|medium|high] [--memory-root <path>] [--json]",
+    "  hippocode status [--exposure summary|focused|full] [--include-archived] [--recent-limit <n>] [--memory-root <path>] [--json]",
     "  hippocode deep-sleep --summary <text> --candidate-layer <layer> [--candidate-layer <layer>...] [--touched-file <path>] [--validation <item>] [--source-episodic-id <id>] [--tag <tag>] [--exposure summary|focused|full] [--signal-strength low|medium|high] [--memory-root <path>] [--json]",
     "",
     "说明：",

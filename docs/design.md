@@ -38,11 +38,12 @@ Hippocode 从一开始就按可发布的 TypeScript npm package 组织。
 - 核心类型
 - 文件型 memory store
 - summary-first recall / forecast / reflect / sleep 最小运行时
+- `/hippo:project-onboard` 最小项目画像初始化执行器
 - `/hippo:deep-sleep` 最小晋升执行器
 - `/hippo:status` 最小状态汇总执行器
 - smoke test 脚本与已构建产物回归入口
 - recall regression fixture 与 exposureTrace / ranking 回归脚本
-- 最小 CLI 入口，支持 `validate`、`recall`、`forecast`、`reflect`、`sleep`、`status`、`deep-sleep`
+- 最小 CLI 入口，支持 `validate`、`recall`、`project-onboard`、`forecast`、`reflect`、`sleep`、`status`、`deep-sleep`
 - `.memory` 长期层基线样例与 graph 基线关系
 - Claude / Codex host adapter descriptor
 - 命令协议文档
@@ -135,6 +136,7 @@ Recall engine 在当前阶段已实现最小运行时，仍保持轻量启发式
 进一步地，`fixtures/forecast-regression/.memory`、`fixtures/reflect-regression/.memory`、`fixtures/sleep-regression/.memory` 与 `scripts/regression-runtime-commands.mjs` 提供命令级固定回归，分别覆盖：
 
 - `forecast` 的计划步骤、推荐焦点、follow-up 命令与 telemetry 依赖收敛
+- `project-onboard` 的项目画像、当前焦点与基础 graph 初始化
 - `reflect` 的偏差识别、candidate layers 判定与 `episodic` 写入
 - `sleep` 的候选层判断、晋升建议与 `deep-sleep` 提示
 - `deep-sleep` 的长期层写入、graph 同步与 follow-up telemetry
@@ -195,6 +197,7 @@ Hippocode 的默认暴露策略固定为三层：
 
 - `hippocode validate`
 - `hippocode recall`
+- `hippocode project-onboard`
 - `hippocode forecast`
 - `hippocode reflect`
 - `hippocode sleep`

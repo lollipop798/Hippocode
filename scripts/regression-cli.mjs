@@ -114,6 +114,57 @@ async function runRecallRegression(projectRoot) {
   };
 }
 
+async function runProjectOnboardRegression(projectRoot) {
+  const tempRoot = await mkdtemp(join(tmpdir(), "hippocode-cli-onboard-"));
+
+  try {
+    const memoryRoot = join(tempRoot, ".memory");
+    const response = await runCli(projectRoot, [
+      "project-onboard",
+      "--memory-root",
+      memoryRoot,
+      "--project-name",
+      "Hippocode CLI Regression",
+      "--project-summary",
+      "用于验证 project-onboard CLI 的最小固定样本。",
+      "--current-phase",
+      "Phase 2 MVP",
+      "--focus",
+      "稳定最小运行时",
+      "--focus",
+      "固化 CLI 回归",
+      "--constraint",
+      "package-first",
+      "--constraint",
+      "summary-first",
+      "--module-hint",
+      "src/core/runtime.ts",
+      "--host",
+      "codex",
+      "--json"
+    ]);
+
+    assert(response.code === 0, `project-onboard CLI 退出码异常：${response.code}\n${response.stderr}`);
+    const payload = parseJsonOutput(response.stdout, "project-onboard CLI");
+    assert(payload.status === "ok", `project-onboard CLI status 期望 ok，实际 ${payload.status}`);
+    assert(
+      payload.payload?.structured?.command === "/hippo:project-onboard",
+      "project-onboard CLI command 不正确。"
+    );
+    assert(
+      payload.telemetry?.nextCommandHint === "/hippo:recall",
+      `project-onboard CLI nextCommandHint 期望 /hippo:recall，实际 ${payload.telemetry?.nextCommandHint}`
+    );
+
+    return {
+      projectName: payload.payload.structured.projectName,
+      nextCommandHint: payload.telemetry.nextCommandHint
+    };
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+}
+
 async function runForecastRegression(projectRoot) {
   const response = await runCli(projectRoot, [
     "forecast",
@@ -347,6 +398,7 @@ async function run() {
   const projectRoot = process.cwd();
   const validate = await runValidateRegression(projectRoot);
   const recall = await runRecallRegression(projectRoot);
+  const projectOnboard = await runProjectOnboardRegression(projectRoot);
   const forecast = await runForecastRegression(projectRoot);
   const reflect = await runReflectRegression(projectRoot);
   const sleep = await runSleepRegression(projectRoot);
@@ -356,6 +408,7 @@ async function run() {
   console.log("CLI regression passed.");
   console.log(`validate: ${JSON.stringify(validate)}`);
   console.log(`recall: ${JSON.stringify(recall)}`);
+  console.log(`project-onboard: ${JSON.stringify(projectOnboard)}`);
   console.log(`forecast: ${JSON.stringify(forecast)}`);
   console.log(`reflect: ${JSON.stringify(reflect)}`);
   console.log(`sleep: ${JSON.stringify(sleep)}`);

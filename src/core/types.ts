@@ -279,6 +279,18 @@ export interface StatusCommandInput {
   recentLimit?: number;
 }
 
+export interface ProjectOnboardCommandInput {
+  projectName: string;
+  projectSummary: string;
+  currentPhase: string;
+  focusAreas: string[];
+  constraints: string[];
+  risks?: string[];
+  moduleHints?: string[];
+  host?: string;
+  exposureLevel?: ExposureLevel;
+}
+
 export interface DeepSleepResult {
   command: "/hippo:deep-sleep";
   summary: string;
@@ -309,6 +321,17 @@ export interface StatusResult {
   promotableCandidates: number;
   recentEpisodicIds: string[];
   healthSignals: StatusHealthSignal[];
+}
+
+export interface ProjectOnboardResult {
+  command: "/hippo:project-onboard";
+  projectProfileUpdated: boolean;
+  currentFocusUpdated: boolean;
+  graphUpdated: boolean;
+  projectName: string;
+  currentPhase: string;
+  focusAreas: string[];
+  moduleHints: string[];
 }
 
 export interface MemoryStoreQuery {

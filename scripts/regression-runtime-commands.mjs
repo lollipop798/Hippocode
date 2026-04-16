@@ -104,6 +104,56 @@ async function runForecastRegression(projectRoot, runtimeFactory) {
   }
 }
 
+async function runProjectOnboardRegression(projectRoot, runtimeFactory) {
+  const { tempRoot, memoryRoot } = await createIsolatedMemoryRoot(projectRoot, "sleep-regression");
+
+  try {
+    const now = createFixedNow();
+    const store = runtimeFactory.createFileMemoryStore({ rootDir: memoryRoot, now });
+    const runtime = runtimeFactory.createHippoRuntime({ store, now });
+
+    const response = await runtime.executeProjectOnboard({
+      projectName: "Hippocode Regression Workspace",
+      projectSummary: "用于验证最小 project-onboard 协议的固定样本。",
+      currentPhase: "Phase 2 MVP",
+      focusAreas: ["稳定最小运行时", "固化 recall / sleep 回归"],
+      constraints: ["package-first", "summary-first"],
+      risks: ["graph 仍依赖轻量快照"],
+      moduleHints: ["src/core/runtime.ts", "src/core/memory-store.ts"],
+      host: "codex",
+      exposureLevel: "summary"
+    });
+
+    const entries = await store.queryEntries({ exposureLevel: "full", includeArchived: true, limit: 50 });
+    const graph = await store.readGraph();
+
+    assert(response.status === "ok", "project-onboard regression 未返回 ok。");
+    assert(
+      response.payload.structured.command === "/hippo:project-onboard",
+      "project-onboard command 不正确。"
+    );
+    assert(
+      entries.some((entry) => entry.id === "project-profile" && entry.content?.includes("Hippocode Regression Workspace")),
+      "project-onboard 未写入 project-profile。"
+    );
+    assert(
+      entries.some((entry) => entry.id === "current-focus" && entry.content?.includes("稳定最小运行时")),
+      "project-onboard 未写入 current-focus。"
+    );
+    assert(graph.nodes.some((node) => node.id === "project-profile"), "project-onboard 未同步 project-profile graph node。");
+    assert(graph.nodes.some((node) => node.id === "current-focus"), "project-onboard 未同步 current-focus graph node。");
+    assertTelemetry(response, "summary", ["summary"], "/hippo:recall");
+
+    return {
+      graphNodes: graph.nodes.length,
+      graphEdges: graph.edges.length,
+      projectName: response.payload.structured.projectName
+    };
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+}
+
 async function runReflectRegression(projectRoot, runtimeFactory) {
   const { tempRoot, memoryRoot } = await createIsolatedMemoryRoot(projectRoot, "reflect-regression");
 
@@ -414,13 +464,18 @@ async function run() {
 
   const selectedModes =
     mode === "all"
-      ? ["forecast", "reflect", "sleep", "status", "deep-sleep", "deep-sleep-partial"]
+      ? ["project-onboard", "forecast", "reflect", "sleep", "status", "deep-sleep", "deep-sleep-partial"]
       : [mode];
   const results = [];
 
   for (const selectedMode of selectedModes) {
     if (selectedMode === "forecast") {
       results.push(["forecast", await runForecastRegression(projectRoot, runtimeFactory)]);
+      continue;
+    }
+
+    if (selectedMode === "project-onboard") {
+      results.push(["project-onboard", await runProjectOnboardRegression(projectRoot, runtimeFactory)]);
       continue;
     }
 

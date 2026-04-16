@@ -45,6 +45,7 @@
     "validate:memory-schema": "node ./scripts/validate-memory-schema.mjs",
     "smoke": "node ./scripts/smoke-test.mjs",
     "regression:recall": "node ./scripts/regression-recall-exposure.mjs",
+    "regression:project-onboard": "node ./scripts/regression-runtime-commands.mjs project-onboard",
     "regression:forecast": "node ./scripts/regression-runtime-commands.mjs forecast",
     "regression:reflect": "node ./scripts/regression-runtime-commands.mjs reflect",
     "regression:sleep": "node ./scripts/regression-runtime-commands.mjs sleep",

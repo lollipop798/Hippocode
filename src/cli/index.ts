@@ -12,6 +12,7 @@ import {
   type ExposureLevel,
   type HippoCommandName,
   type MemoryLayer,
+  type ProjectOnboardCommandInput,
   type RecallCommandInput,
   type RecallResult,
   type ReflectCommandInput,
@@ -25,6 +26,7 @@ const CLI_SUBCOMMANDS = [
   "commands",
   "validate",
   "recall",
+  "project-onboard",
   "forecast",
   "reflect",
   "sleep",
@@ -108,7 +110,7 @@ export const CLI_COMMANDS: CliCommandDescriptor[] = [
   {
     name: "/hippo:project-onboard",
     description: "建立或刷新项目画像与当前焦点。",
-    maturity: "documented"
+    maturity: "implemented"
   },
   {
     name: "/hippo:prune",
@@ -148,6 +150,8 @@ export async function runCli(argv: string[], options: CliRunOptions = {}): Promi
         return await runValidateCommand(parsed.options, cwd, io);
       case "recall":
         return await runRecallCommand(parsed.options, cwd, io);
+      case "project-onboard":
+        return await runProjectOnboardCommand(parsed.options, cwd, io);
       case "forecast":
         return await runForecastCommand(parsed.options, cwd, io);
       case "reflect":
@@ -299,6 +303,50 @@ async function runRecallCommand(
   }
 
   const response = await createRuntime(cwd, options).executeRecall(input);
+  renderEnvelope(response, getBooleanOption(options, "json"), io);
+  return response.status === "error" ? 1 : 0;
+}
+
+async function runProjectOnboardCommand(
+  options: Map<string, string[]>,
+  cwd: string,
+  io: CliIo
+): Promise<number> {
+  const focusAreas = getMultiValueOption(options, "focus");
+
+  if (focusAreas.length === 0) {
+    throw new CliUsageError("project-onboard 至少需要一个 --focus。");
+  }
+
+  const input: ProjectOnboardCommandInput = {
+    projectName: requireStringOption(options, "project-name"),
+    projectSummary: requireStringOption(options, "project-summary"),
+    currentPhase: requireStringOption(options, "current-phase"),
+    focusAreas,
+    constraints: getMultiValueOption(options, "constraint")
+  };
+  const risks = getMultiValueOption(options, "risk");
+  const moduleHints = getMultiValueOption(options, "module-hint");
+  const host = getStringOption(options, "host");
+  const exposure = getStringOption(options, "exposure");
+
+  if (risks.length > 0) {
+    input.risks = risks;
+  }
+
+  if (moduleHints.length > 0) {
+    input.moduleHints = moduleHints;
+  }
+
+  if (host) {
+    input.host = host;
+  }
+
+  if (exposure) {
+    input.exposureLevel = parseExposureLevel(exposure);
+  }
+
+  const response = await createRuntime(cwd, options).executeProjectOnboard(input);
   renderEnvelope(response, getBooleanOption(options, "json"), io);
   return response.status === "error" ? 1 : 0;
 }
@@ -507,6 +555,7 @@ function renderHelp(): string {
     "  hippocode commands [--json]",
     "  hippocode validate [--memory-root .memory] [--json]",
     "  hippocode recall --prompt <text> [--scope task|module|project] [--intent <text>] [--focus-path <path>] [--filter <value>] [--exposure summary|focused|full] [--limit <n>] [--memory-root <path>] [--json]",
+    "  hippocode project-onboard --project-name <text> --project-summary <text> --current-phase <text> --focus <text> [--focus <text>...] [--constraint <text>] [--risk <text>] [--module-hint <text>] [--host <name>] [--exposure summary|focused|full] [--memory-root <path>] [--json]",
     "  hippocode forecast --task <text> [--constraint <text>] [--dependency <id>] [--risk-profile low|medium|high] [--exposure summary|focused|full] [--memory-root <path>] [--json]",
     "  hippocode reflect --session-event <text> [--session-event <text>...] --outcome <text> [--anomaly <text>] [--lesson <text>] [--time-range <iso-interval>] [--memory-root <path>] [--json]",
     "  hippocode sleep --summary <text> [--touched-file <path>] [--validation <item>] [--tag <tag>] [--exposure summary|focused|full] [--signal-strength low|medium|high] [--memory-root <path>] [--json]",
@@ -515,6 +564,7 @@ function renderHelp(): string {
     "",
     "说明：",
     "  - 多值参数可重复传入，例如 --filter recall --filter runtime",
+    "  - project-onboard 当前只维护 project-profile、current-focus 与基础 project graph 节点",
     "  - forecast / reflect / sleep 目前直接对接最小 runtime，不额外实现 recallSnapshot / priorForecast 注入",
     "  - deep-sleep 当前只会真正晋升 decision、incident、pattern、module 层",
     "  - validate 按当前 FileMemoryStore 约定校验 memory root 与 graph 快照"

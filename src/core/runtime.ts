@@ -17,6 +17,8 @@ import type {
   MemoryGraphNode,
   MemoryGraphSnapshot,
   MemoryLayer,
+  ProjectOnboardCommandInput,
+  ProjectOnboardResult,
   RecallCommandInput,
   RecallPipelineConfig,
   RecallResult,
@@ -37,6 +39,9 @@ export interface HippoRuntimeOptions {
 
 export interface HippoRuntime {
   executeRecall(input: RecallCommandInput): Promise<CommandEnvelope<RecallResult>>;
+  executeProjectOnboard(
+    input: ProjectOnboardCommandInput
+  ): Promise<CommandEnvelope<ProjectOnboardResult>>;
   executeForecast(input: ForecastCommandInput): Promise<CommandEnvelope<ForecastPlan>>;
   executeReflect(input: ReflectCommandInput): Promise<CommandEnvelope<ReflectInsight>>;
   executeSleep(input: SleepCommandInput): Promise<CommandEnvelope<SleepEntry>>;
@@ -46,6 +51,7 @@ export interface HippoRuntime {
     command: HippoCommandName,
     input:
       | RecallCommandInput
+      | ProjectOnboardCommandInput
       | ForecastCommandInput
       | ReflectCommandInput
       | SleepCommandInput
@@ -53,6 +59,7 @@ export interface HippoRuntime {
       | StatusCommandInput
   ): Promise<
     | CommandEnvelope<RecallResult>
+    | CommandEnvelope<ProjectOnboardResult>
     | CommandEnvelope<ForecastPlan>
     | CommandEnvelope<ReflectInsight>
     | CommandEnvelope<SleepEntry>
@@ -83,6 +90,111 @@ export function createHippoRuntime(options: HippoRuntimeOptions): HippoRuntime {
     const graph = await options.store.readGraph();
 
     return buildRecallCommand(input, { entries, graph }, recallConfig);
+  }
+
+  async function executeProjectOnboard(
+    input: ProjectOnboardCommandInput
+  ): Promise<CommandEnvelope<ProjectOnboardResult>> {
+    const focusAreas = uniqueStrings(input.focusAreas).slice(0, 8);
+    const constraints = uniqueStrings(input.constraints).slice(0, 8);
+    const risks = uniqueStrings(input.risks ?? []).slice(0, 8);
+    const moduleHints = uniqueStrings(input.moduleHints ?? []).slice(0, 8);
+    const host = input.host?.trim();
+
+    await options.store.writeEntry(
+      buildProjectMarkdownEntry({
+        id: "project-profile",
+        title: "Project Profile",
+        summary: `${input.projectName} 的项目画像、长期约束与当前阶段摘要。`,
+        content: [
+          `# Project Profile`,
+          "",
+          `- 项目：${input.projectName}`,
+          `- 定位：${input.projectSummary}`,
+          `- 当前阶段：${input.currentPhase}`,
+          `- 核心关注：`,
+          ...focusAreas.map((focus) => `  - ${focus}`),
+          `- 长期约束：`,
+          ...constraints.map((constraint) => `  - ${constraint}`),
+          ...(risks.length > 0 ? [`- 当前风险：`, ...risks.map((risk) => `  - ${risk}`)] : []),
+          ...(moduleHints.length > 0 ? [`- 模块提示：`, ...moduleHints.map((hint) => `  - ${hint}`)] : []),
+          ...(host ? [`- 当前宿主：${host}`] : [])
+        ].join("\n"),
+        keywords: [
+          input.projectName,
+          input.currentPhase,
+          ...focusAreas,
+          ...constraints,
+          ...moduleHints
+        ],
+        now
+      })
+    );
+
+    await options.store.writeEntry(
+      buildProjectMarkdownEntry({
+        id: "current-focus",
+        title: "Current Focus",
+        summary: `${input.projectName} 当前迭代的重点、约束与近期关注项。`,
+        content: [
+          `# Current Focus`,
+          "",
+          ...focusAreas.map((focus) => `- ${focus}`),
+          ...(constraints.length > 0 ? ["- 当前约束：", ...constraints.map((constraint) => `  - ${constraint}`)] : []),
+          ...(risks.length > 0 ? ["- 当前风险：", ...risks.map((risk) => `  - ${risk}`)] : []),
+          ...(moduleHints.length > 0 ? ["- 相关模块：", ...moduleHints.map((hint) => `  - ${hint}`)] : [])
+        ].join("\n"),
+        keywords: [input.projectName, ...focusAreas, ...constraints, ...moduleHints],
+        now
+      })
+    );
+
+    const graph = await options.store.readGraph();
+    const nextGraph = buildProjectOnboardGraphSnapshot({
+      graph,
+      input: {
+        ...input,
+        focusAreas,
+        constraints,
+        risks,
+        moduleHints
+      },
+      now
+    });
+    await options.store.writeGraph(nextGraph);
+
+    return {
+      status: "ok",
+      payload: {
+        humanReadable: summarizeText(
+          `已完成项目画像初始化，更新了 project profile、current focus 与基础 graph。下一步建议先执行 /hippo:recall 验证召回是否对齐新的项目边界。`,
+          260
+        ),
+        structured: {
+          command: "/hippo:project-onboard",
+          projectProfileUpdated: true,
+          currentFocusUpdated: true,
+          graphUpdated: true,
+          projectName: input.projectName,
+          currentPhase: input.currentPhase,
+          focusAreas,
+          moduleHints
+        }
+      },
+      telemetry: {
+        confidence: 0.86,
+        exposureLevel: input.exposureLevel ?? "summary",
+        dependencies: uniqueStrings([
+          input.projectName,
+          input.currentPhase,
+          ...focusAreas,
+          ...constraints,
+          ...moduleHints
+        ]),
+        exposureTrace: [input.exposureLevel ?? "summary"],
+        nextCommandHint: "/hippo:recall"
+      }
+    };
   }
 
   async function executeForecast(
@@ -441,6 +553,7 @@ export function createHippoRuntime(options: HippoRuntimeOptions): HippoRuntime {
     command: HippoCommandName,
     input:
       | RecallCommandInput
+      | ProjectOnboardCommandInput
       | ForecastCommandInput
       | ReflectCommandInput
       | SleepCommandInput
@@ -448,6 +561,7 @@ export function createHippoRuntime(options: HippoRuntimeOptions): HippoRuntime {
       | StatusCommandInput
   ): Promise<
     | CommandEnvelope<RecallResult>
+    | CommandEnvelope<ProjectOnboardResult>
     | CommandEnvelope<ForecastPlan>
     | CommandEnvelope<ReflectInsight>
     | CommandEnvelope<SleepEntry>
@@ -457,6 +571,8 @@ export function createHippoRuntime(options: HippoRuntimeOptions): HippoRuntime {
     switch (command) {
       case "/hippo:recall":
         return executeRecall(input as RecallCommandInput);
+      case "/hippo:project-onboard":
+        return executeProjectOnboard(input as ProjectOnboardCommandInput);
       case "/hippo:forecast":
         return executeForecast(input as ForecastCommandInput);
       case "/hippo:reflect":
@@ -474,6 +590,7 @@ export function createHippoRuntime(options: HippoRuntimeOptions): HippoRuntime {
 
   return {
     executeRecall,
+    executeProjectOnboard,
     executeForecast,
     executeReflect,
     executeSleep,
@@ -547,6 +664,100 @@ function determineForecastRisk(
   }
 
   return "low";
+}
+
+function buildProjectMarkdownEntry(options: {
+  id: "project-profile" | "current-focus";
+  title: string;
+  summary: string;
+  content: string;
+  keywords: string[];
+  now: () => Date;
+}): MemoryEntry {
+  return {
+    id: options.id,
+    layer: "project",
+    title: options.title,
+    summary: summarizeText(options.summary, 220),
+    keywords: uniqueStrings(options.keywords.flatMap((value) => tokenizeText(value))),
+    scope: options.id === "project-profile" ? "project" : "current-focus",
+    exposure: "summary",
+    content: options.content,
+    createdAt: options.now().toISOString()
+  };
+}
+
+function buildProjectOnboardGraphSnapshot(options: {
+  graph: MemoryGraphSnapshot;
+  input: ProjectOnboardCommandInput & {
+    focusAreas: string[];
+    constraints: string[];
+    risks: string[];
+    moduleHints: string[];
+  };
+  now: () => Date;
+}): MemoryGraphSnapshot {
+  const profileNode: MemoryGraphNode = {
+    id: "project-profile",
+    type: "project",
+    title: "Project Profile",
+    summary: summarizeText(
+      `${options.input.projectName} 的项目画像，阶段 ${options.input.currentPhase}，聚焦 ${options.input.focusAreas.join("、") || "未指定"}。`,
+      180
+    ),
+    keywords: uniqueStrings(
+      tokenizeText(
+        [
+          options.input.projectName,
+          options.input.projectSummary,
+          options.input.currentPhase,
+          ...options.input.focusAreas,
+          ...options.input.constraints,
+          ...options.input.moduleHints
+        ].join(" ")
+      )
+    ),
+    layer: "project",
+    weight: 0.9,
+    confidence: 0.85
+  };
+  const focusNode: MemoryGraphNode = {
+    id: "current-focus",
+    type: "project",
+    title: "Current Focus",
+    summary: summarizeText(
+      `${options.input.projectName} 当前聚焦 ${options.input.focusAreas.join("、") || "未指定"}。`,
+      180
+    ),
+    keywords: uniqueStrings(
+      tokenizeText(
+        [options.input.projectName, ...options.input.focusAreas, ...options.input.moduleHints].join(" ")
+      )
+    ),
+    layer: "project",
+    weight: 0.84,
+    confidence: 0.81
+  };
+
+  const nextNodes = [...options.graph.nodes];
+  upsertGraphNode(nextNodes, profileNode);
+  upsertGraphNode(nextNodes, focusNode);
+
+  const nextEdges = [...options.graph.edges];
+  upsertGraphEdge(nextEdges, {
+    from: "project-profile",
+    to: "current-focus",
+    type: "related_to",
+    weight: 0.82,
+    reason: "当前焦点直接继承项目画像、阶段与约束。"
+  });
+
+  return {
+    version: options.graph.version,
+    updatedAt: options.now().toISOString(),
+    nodes: nextNodes,
+    edges: nextEdges
+  };
 }
 
 function buildReflectDeviations(input: ReflectCommandInput): string[] {

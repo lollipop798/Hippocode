@@ -45,7 +45,7 @@
 - `fixtures/forecast-regression/.memory`、`fixtures/reflect-regression/.memory`、`fixtures/sleep-regression/.memory`
 - `scripts/regression-runtime-commands.mjs` 与 `regression:forecast|reflect|sleep|runtime|all`
 - `regression:deep-sleep` 与长期层晋升 / graph 同步回归
-- 最小 CLI 入口，支持 `validate`、`recall`、`deep-sleep`
+- 最小 CLI 入口，支持 `validate`、`recall`、`forecast`、`reflect`、`sleep`、`deep-sleep`
 - `scripts/regression-cli.mjs` 与 `regression:cli`，覆盖最小 CLI 的固定回归
 - `.memory` 长期层基线样例与 graph 基线关系
 

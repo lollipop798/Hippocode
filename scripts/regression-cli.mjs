@@ -114,6 +114,152 @@ async function runRecallRegression(projectRoot) {
   };
 }
 
+async function runForecastRegression(projectRoot) {
+  const response = await runCli(projectRoot, [
+    "forecast",
+    "--memory-root",
+    "fixtures/forecast-regression/.memory",
+    "--task",
+    "stabilize runtime recall planning regression",
+    "--constraint",
+    "summary-first",
+    "--constraint",
+    "package-first",
+    "--exposure",
+    "focused",
+    "--json"
+  ]);
+
+  assert(response.code === 0, `forecast CLI 退出码异常：${response.code}\n${response.stderr}`);
+  const payload = parseJsonOutput(response.stdout, "forecast CLI");
+  assert(payload.status === "ok", `forecast CLI status 期望 ok，实际 ${payload.status}`);
+  assert(payload.payload?.structured?.command === "/hippo:forecast", "forecast CLI command 不正确。");
+  assert(
+    Array.isArray(payload.payload?.structured?.steps) && payload.payload.structured.steps.length === 3,
+    `forecast CLI steps 期望 3，实际 ${payload.payload?.structured?.steps?.length}`
+  );
+  assert(
+    payload.telemetry?.nextCommandHint === "/hippo:reflect",
+    `forecast CLI nextCommandHint 期望 /hippo:reflect，实际 ${payload.telemetry?.nextCommandHint}`
+  );
+
+  return {
+    steps: payload.payload.structured.steps.length,
+    nextCommandHint: payload.telemetry.nextCommandHint
+  };
+}
+
+async function runReflectRegression(projectRoot) {
+  const tempRoot = await mkdtemp(join(tmpdir(), "hippocode-cli-reflect-"));
+
+  try {
+    const memoryRoot = join(tempRoot, ".memory");
+    await cp(resolve(projectRoot, "fixtures/reflect-regression/.memory"), memoryRoot, {
+      recursive: true
+    });
+
+    const response = await runCli(projectRoot, [
+      "reflect",
+      "--memory-root",
+      memoryRoot,
+      "--session-event",
+      "确认约束与焦点 pass",
+      "--session-event",
+      "validation pass",
+      "--session-event",
+      "runtime signal fail",
+      "--outcome",
+      "本轮修正了 runtime 回归脚本，但发现 validation 覆盖仍有缺口。",
+      "--anomaly",
+      "遗漏一项 validation 断言",
+      "--lesson",
+      "先固定 fixture 再扩展脚本",
+      "--time-range",
+      "2026-04-13T13:30:00.000Z/2026-04-13T14:00:00.000Z",
+      "--json"
+    ]);
+
+    assert(response.code === 0, `reflect CLI 退出码异常：${response.code}\n${response.stderr}`);
+    const payload = parseJsonOutput(response.stdout, "reflect CLI");
+    assert(payload.status === "ok", `reflect CLI status 期望 ok，实际 ${payload.status}`);
+    assert(payload.payload?.structured?.command === "/hippo:reflect", "reflect CLI command 不正确。");
+    assert(
+      Array.isArray(payload.payload?.structured?.deviations) &&
+        payload.payload.structured.deviations.length > 0,
+      "reflect CLI deviations 为空。"
+    );
+    assert(
+      payload.telemetry?.nextCommandHint === "/hippo:sleep",
+      `reflect CLI nextCommandHint 期望 /hippo:sleep，实际 ${payload.telemetry?.nextCommandHint}`
+    );
+
+    return {
+      deviations: payload.payload.structured.deviations.length,
+      nextCommandHint: payload.telemetry.nextCommandHint
+    };
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+}
+
+async function runSleepRegression(projectRoot) {
+  const tempRoot = await mkdtemp(join(tmpdir(), "hippocode-cli-sleep-"));
+
+  try {
+    const memoryRoot = join(tempRoot, ".memory");
+    await cp(resolve(projectRoot, "fixtures/sleep-regression/.memory"), memoryRoot, {
+      recursive: true
+    });
+
+    const response = await runCli(projectRoot, [
+      "sleep",
+      "--memory-root",
+      memoryRoot,
+      "--summary",
+      "runtime regression decision candidate should be compressed for deep sleep",
+      "--touched-file",
+      "src/core/runtime.ts",
+      "--touched-file",
+      "src/core/memory-store.ts",
+      "--validation",
+      "build-pass",
+      "--validation",
+      "regression-pass",
+      "--tag",
+      "pattern",
+      "--tag",
+      "workflow",
+      "--tag",
+      "test",
+      "--exposure",
+      "focused",
+      "--signal-strength",
+      "high",
+      "--json"
+    ]);
+
+    assert(response.code === 0, `sleep CLI 退出码异常：${response.code}\n${response.stderr}`);
+    const payload = parseJsonOutput(response.stdout, "sleep CLI");
+    assert(payload.status === "ok", `sleep CLI status 期望 ok，实际 ${payload.status}`);
+    assert(payload.payload?.structured?.command === "/hippo:sleep", "sleep CLI command 不正确。");
+    assert(
+      payload.payload?.structured?.promoteToLongTerm === true,
+      "sleep CLI 未建议晋升长期层。"
+    );
+    assert(
+      payload.telemetry?.nextCommandHint === "/hippo:deep-sleep",
+      `sleep CLI nextCommandHint 期望 /hippo:deep-sleep，实际 ${payload.telemetry?.nextCommandHint}`
+    );
+
+    return {
+      candidateLayers: payload.payload.structured.candidateLayers.length,
+      nextCommandHint: payload.telemetry.nextCommandHint
+    };
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+}
+
 async function runDeepSleepRegression(projectRoot) {
   const tempRoot = await mkdtemp(join(tmpdir(), "hippocode-cli-regression-"));
 
@@ -175,11 +321,17 @@ async function run() {
   const projectRoot = process.cwd();
   const validate = await runValidateRegression(projectRoot);
   const recall = await runRecallRegression(projectRoot);
+  const forecast = await runForecastRegression(projectRoot);
+  const reflect = await runReflectRegression(projectRoot);
+  const sleep = await runSleepRegression(projectRoot);
   const deepSleep = await runDeepSleepRegression(projectRoot);
 
   console.log("CLI regression passed.");
   console.log(`validate: ${JSON.stringify(validate)}`);
   console.log(`recall: ${JSON.stringify(recall)}`);
+  console.log(`forecast: ${JSON.stringify(forecast)}`);
+  console.log(`reflect: ${JSON.stringify(reflect)}`);
+  console.log(`sleep: ${JSON.stringify(sleep)}`);
   console.log(`deep-sleep: ${JSON.stringify(deepSleep)}`);
 }
 

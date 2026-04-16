@@ -6,21 +6,36 @@ import {
   EXPOSURE_LEVELS,
   MEMORY_LAYERS,
   type CommandEnvelope,
+  type ForecastCommandInput,
   type DeepSleepCommandInput,
   type DeepSleepResult,
   type ExposureLevel,
   type HippoCommandName,
   type MemoryLayer,
   type RecallCommandInput,
-  type RecallResult
+  type RecallResult,
+  type ReflectCommandInput,
+  type RiskLevel,
+  type SleepCommandInput
 } from "../core/types.js";
 
-const CLI_SUBCOMMANDS = ["help", "commands", "validate", "recall", "deep-sleep"] as const;
+const CLI_SUBCOMMANDS = [
+  "help",
+  "commands",
+  "validate",
+  "recall",
+  "forecast",
+  "reflect",
+  "sleep",
+  "deep-sleep"
+] as const;
 const PROMOTABLE_MEMORY_LAYERS = ["decision", "incident", "pattern", "module"] as const;
 const SLEEP_SIGNAL_STRENGTHS = ["low", "medium", "high"] as const;
+const RISK_LEVELS = ["low", "medium", "high"] as const;
 
 type CliSubcommand = (typeof CLI_SUBCOMMANDS)[number];
 type SleepSignalStrength = (typeof SLEEP_SIGNAL_STRENGTHS)[number];
+type CliRiskLevel = (typeof RISK_LEVELS)[number];
 
 export interface CliCommandDescriptor {
   name: HippoCommandName;
@@ -131,6 +146,12 @@ export async function runCli(argv: string[], options: CliRunOptions = {}): Promi
         return await runValidateCommand(parsed.options, cwd, io);
       case "recall":
         return await runRecallCommand(parsed.options, cwd, io);
+      case "forecast":
+        return await runForecastCommand(parsed.options, cwd, io);
+      case "reflect":
+        return await runReflectCommand(parsed.options, cwd, io);
+      case "sleep":
+        return await runSleepCommand(parsed.options, cwd, io);
       case "deep-sleep":
         return await runDeepSleepCommand(parsed.options, cwd, io);
       default:
@@ -278,6 +299,103 @@ async function runRecallCommand(
   return response.status === "error" ? 1 : 0;
 }
 
+async function runForecastCommand(
+  options: Map<string, string[]>,
+  cwd: string,
+  io: CliIo
+): Promise<number> {
+  const input: ForecastCommandInput = {
+    taskDescription: requireStringOption(options, "task"),
+    constraints: getMultiValueOption(options, "constraint")
+  };
+  const dependencies = getMultiValueOption(options, "dependency");
+  const riskProfile = getStringOption(options, "risk-profile");
+  const exposure = getStringOption(options, "exposure");
+
+  if (dependencies.length > 0) {
+    input.dependencies = dependencies;
+  }
+
+  if (riskProfile) {
+    input.riskProfile = parseRiskLevel(riskProfile);
+  }
+
+  if (exposure) {
+    input.targetExposure = parseExposureLevel(exposure);
+  }
+
+  const response = await createRuntime(cwd, options).executeForecast(input);
+  renderEnvelope(response, getBooleanOption(options, "json"), io);
+  return response.status === "error" ? 1 : 0;
+}
+
+async function runReflectCommand(
+  options: Map<string, string[]>,
+  cwd: string,
+  io: CliIo
+): Promise<number> {
+  const sessionEvents = getMultiValueOption(options, "session-event");
+
+  if (sessionEvents.length === 0) {
+    throw new CliUsageError("reflect 至少需要一个 --session-event。");
+  }
+
+  const input: ReflectCommandInput = {
+    sessionEvents,
+    outcome: requireStringOption(options, "outcome")
+  };
+  const anomalies = getMultiValueOption(options, "anomaly");
+  const lessons = getMultiValueOption(options, "lesson");
+  const timeRange = getStringOption(options, "time-range");
+
+  if (anomalies.length > 0) {
+    input.anomalies = anomalies;
+  }
+
+  if (lessons.length > 0) {
+    input.lessons = lessons;
+  }
+
+  if (timeRange) {
+    input.timeRange = timeRange;
+  }
+
+  const response = await createRuntime(cwd, options).executeReflect(input);
+  renderEnvelope(response, getBooleanOption(options, "json"), io);
+  return response.status === "error" ? 1 : 0;
+}
+
+async function runSleepCommand(
+  options: Map<string, string[]>,
+  cwd: string,
+  io: CliIo
+): Promise<number> {
+  const input: SleepCommandInput = {
+    summary: requireStringOption(options, "summary"),
+    touchedFiles: getMultiValueOption(options, "touched-file"),
+    validation: getMultiValueOption(options, "validation")
+  };
+  const tags = getMultiValueOption(options, "tag");
+  const exposure = getStringOption(options, "exposure");
+  const signalStrength = getStringOption(options, "signal-strength");
+
+  if (tags.length > 0) {
+    input.tags = tags;
+  }
+
+  if (exposure) {
+    input.exposureLevel = parseExposureLevel(exposure);
+  }
+
+  if (signalStrength) {
+    input.signalStrength = parseSignalStrength(signalStrength);
+  }
+
+  const response = await createRuntime(cwd, options).executeSleep(input);
+  renderEnvelope(response, getBooleanOption(options, "json"), io);
+  return response.status === "error" ? 1 : 0;
+}
+
 async function runDeepSleepCommand(
   options: Map<string, string[]>,
   cwd: string,
@@ -358,10 +476,14 @@ function renderHelp(): string {
     "  hippocode commands [--json]",
     "  hippocode validate [--memory-root .memory] [--json]",
     "  hippocode recall --prompt <text> [--scope task|module|project] [--intent <text>] [--focus-path <path>] [--filter <value>] [--exposure summary|focused|full] [--limit <n>] [--memory-root <path>] [--json]",
+    "  hippocode forecast --task <text> [--constraint <text>] [--dependency <id>] [--risk-profile low|medium|high] [--exposure summary|focused|full] [--memory-root <path>] [--json]",
+    "  hippocode reflect --session-event <text> [--session-event <text>...] --outcome <text> [--anomaly <text>] [--lesson <text>] [--time-range <iso-interval>] [--memory-root <path>] [--json]",
+    "  hippocode sleep --summary <text> [--touched-file <path>] [--validation <item>] [--tag <tag>] [--exposure summary|focused|full] [--signal-strength low|medium|high] [--memory-root <path>] [--json]",
     "  hippocode deep-sleep --summary <text> --candidate-layer <layer> [--candidate-layer <layer>...] [--touched-file <path>] [--validation <item>] [--source-episodic-id <id>] [--tag <tag>] [--exposure summary|focused|full] [--signal-strength low|medium|high] [--memory-root <path>] [--json]",
     "",
     "说明：",
     "  - 多值参数可重复传入，例如 --filter recall --filter runtime",
+    "  - forecast / reflect / sleep 目前直接对接最小 runtime，不额外实现 recallSnapshot / priorForecast 注入",
     "  - deep-sleep 当前只会真正晋升 decision、incident、pattern、module 层",
     "  - validate 按当前 FileMemoryStore 约定校验 memory root 与 graph 快照"
   ].join("\n");
@@ -458,6 +580,16 @@ function parseSignalStrength(value: string): SleepSignalStrength {
   );
 }
 
+function parseRiskLevel(value: string): CliRiskLevel {
+  if ((RISK_LEVELS as readonly string[]).includes(value)) {
+    return value as RiskLevel;
+  }
+
+  throw new CliUsageError(
+    `--risk-profile 必须是 ${RISK_LEVELS.join("、")} 之一，实际收到 ${value}。`
+  );
+}
+
 export function isPromotableCliLayer(layer: MemoryLayer): boolean {
   return (PROMOTABLE_MEMORY_LAYERS as readonly string[]).includes(layer);
 }
@@ -479,4 +611,4 @@ class CliUsageError extends Error {
   }
 }
 
-export type { DeepSleepResult, RecallResult, ValidateCliResult };
+export type { ValidateCliResult };

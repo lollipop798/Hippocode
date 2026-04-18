@@ -165,6 +165,49 @@ async function runProjectOnboardRegression(projectRoot) {
   }
 }
 
+async function runInitRegression(projectRoot) {
+  const tempRoot = await mkdtemp(join(tmpdir(), "hippocode-cli-init-"));
+
+  try {
+    const response = await runCli(projectRoot, [
+      "init",
+      "--target",
+      tempRoot,
+      "--host",
+      "both",
+      "--json"
+    ]);
+
+    assert(response.code === 0, `init CLI 退出码异常：${response.code}\n${response.stderr}`);
+    const payload = parseJsonOutput(response.stdout, "init CLI");
+    assert(payload.command === "init", `init CLI command 期望 init，实际 ${payload.command}`);
+    assert(payload.host === "both", `init CLI host 期望 both，实际 ${payload.host}`);
+    assert(payload.target === tempRoot, `init CLI target 期望 ${tempRoot}，实际 ${payload.target}`);
+    assert(Array.isArray(payload.created), "init CLI created 必须是数组。");
+    assert(Array.isArray(payload.skipped), "init CLI skipped 必须是数组。");
+    assert(payload.created.length === 4, `init CLI created 期望 4，实际 ${payload.created.length}`);
+    assert(payload.skipped.length === 0, `init CLI skipped 期望 0，实际 ${payload.skipped.length}`);
+
+    const expectedFiles = [
+      ".claude/skills/hippo/README.md",
+      ".claude/hooks/README.md",
+      ".codex/skills/hippo/README.md",
+      ".codex/hooks/README.md"
+    ].map((item) => join(tempRoot, item));
+
+    for (const file of expectedFiles) {
+      await assertReadable(file, "init 初始化文件");
+    }
+
+    return {
+      created: payload.created.length,
+      skipped: payload.skipped.length
+    };
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+}
+
 async function runForecastRegression(projectRoot) {
   const response = await runCli(projectRoot, [
     "forecast",
@@ -397,6 +440,7 @@ async function runDeepSleepRegression(projectRoot) {
 async function run() {
   const projectRoot = process.cwd();
   const validate = await runValidateRegression(projectRoot);
+  const init = await runInitRegression(projectRoot);
   const recall = await runRecallRegression(projectRoot);
   const projectOnboard = await runProjectOnboardRegression(projectRoot);
   const forecast = await runForecastRegression(projectRoot);
@@ -407,6 +451,7 @@ async function run() {
 
   console.log("CLI regression passed.");
   console.log(`validate: ${JSON.stringify(validate)}`);
+  console.log(`init: ${JSON.stringify(init)}`);
   console.log(`recall: ${JSON.stringify(recall)}`);
   console.log(`project-onboard: ${JSON.stringify(projectOnboard)}`);
   console.log(`forecast: ${JSON.stringify(forecast)}`);

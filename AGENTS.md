@@ -130,7 +130,8 @@ Phase 1 的仓库初始化已经完成，当前进入 Phase 2 MVP。
 - 实现 Claude / Codex 的 host adapter descriptor
 - 继续完善 `.memory`、`.claude`、`.codex` 的协议与说明
 - 为 `decisions`、`incidents`、`patterns`、`modules` 维护高信号示例条目，作为 recall 基线样本
-- 维护最小 CLI 入口，当前允许实现 `validate`、`recall`、`project-onboard`、`forecast`、`reflect`、`sleep`、`status`、`deep-sleep` 子命令
+- 维护最小 CLI 入口，当前允许实现 `init`、`validate`、`recall`、`project-onboard`、`forecast`、`reflect`、`sleep`、`status`、`deep-sleep` 子命令
+- CLI 负责为 Claude Code / Codex 初始化 Hippocode 插件骨架；当前只创建轻量 README 和目录，不接入真实 hook 自动化 wiring
 
 当前阶段暂不实现：
 

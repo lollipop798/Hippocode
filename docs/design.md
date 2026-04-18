@@ -43,7 +43,8 @@ Hippocode 从一开始就按可发布的 TypeScript npm package 组织。
 - `/hippo:status` 最小状态汇总执行器
 - smoke test 脚本与已构建产物回归入口
 - recall regression fixture 与 exposureTrace / ranking 回归脚本
-- 最小 CLI 入口，支持 `validate`、`recall`、`project-onboard`、`forecast`、`reflect`、`sleep`、`status`、`deep-sleep`
+- 最小 CLI 入口，支持 `init`、`validate`、`recall`、`project-onboard`、`forecast`、`reflect`、`sleep`、`status`、`deep-sleep`
+- CLI 负责为 Claude Code / Codex 初始化 Hippocode 插件骨架，但不接入真实 hook 自动化
 - `.memory` 长期层基线样例与 graph 基线关系
 - Claude / Codex host adapter descriptor
 - 命令协议文档
@@ -146,7 +147,7 @@ Recall engine 在当前阶段已实现最小运行时，仍保持轻量启发式
 
 - `schema.ts` 负责校验 memory entry、writeEntry 输入与 associative graph 快照
 - `validate:memory-schema` 负责遍历仓库根 `.memory` 与全部 fixtures
-- `regression:all` 把 `typecheck -> build -> schema -> smoke -> recall -> runtime` 串成统一验收入口
+- `regression:all` 把 `typecheck -> build -> schema -> smoke -> recall -> runtime -> cli -> cli-usage` 串成统一验收入口
 
 ## 6. 渐进式暴露
 
@@ -196,6 +197,7 @@ Hippocode 的默认暴露策略固定为三层：
 当前 `bin` 入口为 `hippocode`，最小支持：
 
 - `hippocode validate`
+- `hippocode init`
 - `hippocode recall`
 - `hippocode project-onboard`
 - `hippocode forecast`

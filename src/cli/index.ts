@@ -1,7 +1,8 @@
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 
 import { createFileMemoryStore } from "../core/memory-store.js";
 import { createHippoRuntime } from "../core/runtime.js";
+import { ensureDir, fileExists, writeFileAtomic } from "../utils/fs.js";
 import {
   EXPOSURE_LEVELS,
   MEMORY_LAYERS,
@@ -24,6 +25,7 @@ import {
 const CLI_SUBCOMMANDS = [
   "help",
   "commands",
+  "init",
   "validate",
   "recall",
   "project-onboard",
@@ -69,6 +71,16 @@ interface ValidateCliResult {
   entries: number;
   graphNodes: number;
   graphEdges: number;
+}
+
+type InitHost = "claude" | "codex" | "both";
+
+interface InitCliResult {
+  command: "init";
+  target: string;
+  host: InitHost;
+  created: string[];
+  skipped: string[];
 }
 
 export const CLI_COMMANDS: CliCommandDescriptor[] = [
@@ -131,14 +143,15 @@ export function listImplementedCliCommands(): CliCommandDescriptor[] {
 export async function runCli(argv: string[], options: CliRunOptions = {}): Promise<number> {
   const cwd = options.cwd ?? process.cwd();
   const io = options.io ?? console;
-  const parsed = parseCliArgs(argv);
-
-  if (parsed.helpRequested || parsed.command === "help") {
-    io.log(renderHelp());
-    return 0;
-  }
 
   try {
+    const parsed = parseCliArgs(argv);
+
+    if (parsed.helpRequested || parsed.command === "help") {
+      io.log(renderHelp());
+      return 0;
+    }
+
     switch (parsed.command) {
       case "commands":
         emitJsonMaybe(listImplementedCliCommands(), getBooleanOption(parsed.options, "json"), io);
@@ -148,6 +161,8 @@ export async function runCli(argv: string[], options: CliRunOptions = {}): Promi
         return 0;
       case "validate":
         return await runValidateCommand(parsed.options, cwd, io);
+      case "init":
+        return await runInitCommand(parsed.options, cwd, io);
       case "recall":
         return await runRecallCommand(parsed.options, cwd, io);
       case "project-onboard":
@@ -263,6 +278,61 @@ async function runValidateCommand(
   io.log(`entries: ${result.entries}`);
   io.log(`graphNodes: ${result.graphNodes}`);
   io.log(`graphEdges: ${result.graphEdges}`);
+  return 0;
+}
+
+async function runInitCommand(
+  options: Map<string, string[]>,
+  cwd: string,
+  io: CliIo
+): Promise<number> {
+  const host = parseInitHost(getStringOption(options, "host") ?? "both");
+  const targetOption = getStringOption(options, "target");
+  if (targetOption === "true") {
+    throw new CliUsageError("--target 需要提供目标路径。");
+  }
+
+  const target = resolve(cwd, targetOption ?? ".");
+  const force = getBooleanOption(options, "force");
+  const targets = collectInitTargets(target, host);
+  const created: string[] = [];
+  const skipped: string[] = [];
+
+  for (const item of targets) {
+    if (!force && (await fileExists(item.path))) {
+      skipped.push(item.path);
+      continue;
+    }
+
+    await ensureDir(dirname(item.path));
+    await writeFileAtomic(item.path, item.content);
+    created.push(item.path);
+  }
+
+  const result: InitCliResult = {
+    command: "init",
+    target,
+    host,
+    created,
+    skipped
+  };
+
+  if (getBooleanOption(options, "json")) {
+    emitJsonMaybe(result, true, io);
+    return 0;
+  }
+
+  io.log("Hippocode init 完成。");
+  io.log(`target: ${result.target}`);
+  io.log(`host: ${result.host}`);
+  io.log(`created (${result.created.length}):`);
+  for (const path of result.created) {
+    io.log(`- ${path}`);
+  }
+  io.log(`skipped (${result.skipped.length}):`);
+  for (const path of result.skipped) {
+    io.log(`- ${path}`);
+  }
   return 0;
 }
 
@@ -553,6 +623,7 @@ function renderHelp(): string {
     "用法：",
     "  hippocode help",
     "  hippocode commands [--json]",
+    "  hippocode init [--target <path>] [--host claude|codex|both] [--force] [--json]",
     "  hippocode validate [--memory-root .memory] [--json]",
     "  hippocode recall --prompt <text> [--scope task|module|project] [--intent <text>] [--focus-path <path>] [--filter <value>] [--exposure summary|focused|full] [--limit <n>] [--memory-root <path>] [--json]",
     "  hippocode project-onboard --project-name <text> --project-summary <text> --current-phase <text> --focus <text> [--focus <text>...] [--constraint <text>] [--risk <text>] [--module-hint <text>] [--host <name>] [--exposure summary|focused|full] [--memory-root <path>] [--json]",
@@ -565,6 +636,7 @@ function renderHelp(): string {
     "说明：",
     "  - 多值参数可重复传入，例如 --filter recall --filter runtime",
     "  - project-onboard 当前只维护 project-profile、current-focus 与基础 project graph 节点",
+    "  - init 只初始化 Claude/Codex 的最小 Hippocode 插件目录说明文件，不会接入真实 hook 自动化",
     "  - forecast / reflect / sleep 目前直接对接最小 runtime，不额外实现 recallSnapshot / priorForecast 注入",
     "  - deep-sleep 当前只会真正晋升 decision、incident、pattern、module 层",
     "  - validate 按当前 FileMemoryStore 约定校验 memory root 与 graph 快照"
@@ -626,6 +698,65 @@ function parseRecallScope(value: string): RecallCommandInput["scope"] {
   }
 
   throw new CliUsageError(`--scope 必须是 task、module 或 project，实际收到 ${value}。`);
+}
+
+function parseInitHost(value: string): InitHost {
+  if (value === "claude" || value === "codex" || value === "both") {
+    return value;
+  }
+
+  throw new CliUsageError(`--host 必须是 claude、codex 或 both，实际收到 ${value}。`);
+}
+
+function collectInitTargets(
+  targetRoot: string,
+  host: InitHost
+): Array<{ path: string; content: string }> {
+  const targets: Array<{ path: string; content: string }> = [];
+
+  if (host === "claude" || host === "both") {
+    targets.push({
+      path: resolve(targetRoot, ".claude/skills/hippo/README.md"),
+      content: createHostReadme("claude", "skills")
+    });
+    targets.push({
+      path: resolve(targetRoot, ".claude/hooks/README.md"),
+      content: createHostReadme("claude", "hooks")
+    });
+  }
+
+  if (host === "codex" || host === "both") {
+    targets.push({
+      path: resolve(targetRoot, ".codex/skills/hippo/README.md"),
+      content: createHostReadme("codex", "skills")
+    });
+    targets.push({
+      path: resolve(targetRoot, ".codex/hooks/README.md"),
+      content: createHostReadme("codex", "hooks")
+    });
+  }
+
+  return targets;
+}
+
+function createHostReadme(host: "claude" | "codex", kind: "skills" | "hooks"): string {
+  const hostName = host === "claude" ? "Claude Code" : "Codex CLI";
+
+  if (kind === "skills") {
+    return [
+      `# Hippocode ${hostName} Skills`,
+      "",
+      "此目录用于放置 Hippocode 的宿主技能说明与模板。",
+      "当前由 `hippocode init` 初始化，仅提供最小占位结构。"
+    ].join("\n");
+  }
+
+  return [
+    `# Hippocode ${hostName} Hooks`,
+    "",
+    "此目录用于放置 Hippocode 的宿主 hooks 说明与模板。",
+    "当前由 `hippocode init` 初始化，不包含真实自动化 wiring。"
+  ].join("\n");
 }
 
 function parseExposureLevel(value: string): ExposureLevel {

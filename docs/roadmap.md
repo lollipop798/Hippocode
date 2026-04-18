@@ -47,8 +47,10 @@
 - `project-onboard` 最小项目画像初始化执行器
 - `regression:status` 与记忆层/graph/候选积压的固定回归
 - `regression:deep-sleep` 与长期层晋升 / graph 同步回归
-- 最小 CLI 入口，支持 `validate`、`recall`、`project-onboard`、`forecast`、`reflect`、`sleep`、`status`、`deep-sleep`
+- 最小 CLI 入口，支持 `init`、`validate`、`recall`、`project-onboard`、`forecast`、`reflect`、`sleep`、`status`、`deep-sleep`
+- `hippocode init` 可初始化 Claude Code / Codex 的 Hippocode 插件骨架
 - `scripts/regression-cli.mjs` 与 `regression:cli`，覆盖最小 CLI 的固定回归
+- `scripts/regression-cli-usage.mjs` 与 `regression:cli-usage`，覆盖 CLI usage/error 固定回归
 - `.memory` 长期层基线样例与 graph 基线关系
 
 建议 issue：
@@ -58,7 +60,7 @@
 3. 为 graph 增加自动 upsert 与 pruning
 4. 为 schema validator 增加更细的错误分类与报告
 5. 为 recall 增加 fixture 测试与评分基准
-6. 扩展 CLI / host 接口适配，并为 CLI 增加更多子命令、错误路径覆盖与回归
+6. 扩展 CLI / host 接口适配，并继续强化错误路径覆盖与回归
 
 ## Phase 3：reflect / sleep / deep-sleep
 
@@ -97,7 +99,7 @@
 
 后续建议：
 
-- 扩展 `hippocode init`
+- 扩展 `hippocode init` 的模板同步与 host 版本识别能力
 - 扩展 `hippocode recall` / `hippocode deep-sleep` 的输入模式
 - 构建本地模板同步器
 

@@ -36,6 +36,24 @@
 - `scripts/regression-recall-exposure.mjs` 当前以固定 fixture 验证 `/hippo:recall` 的排序方向与 `exposureTrace`
 - `scripts/regression-runtime-commands.mjs` 当前以固定 fixture 验证 `/hippo:project-onboard`、`/hippo:forecast`、`/hippo:reflect`、`/hippo:sleep`、`/hippo:status`、`/hippo:deep-sleep` 的结构化输出、写入边界与 telemetry
 
+## CLI 初始化命令：`hippocode init`
+
+`hippocode init` 是 **CLI 层项目初始化命令**，用于在目标项目下创建 Hippocode 的宿主插件最小目录说明文件；它不是 `/hippo:` 命名空间下的 slash 命令，不参与 runtime 的命令语义执行链。
+
+参数约定：
+
+- `--target <path>`：目标项目路径，默认当前工作目录
+- `--host claude|codex|both`：初始化宿主范围，默认 `both`
+- `--force`：覆盖已存在的 README 说明文件
+- `--json`：输出结构化结果，包含 `created` / `skipped` / `target` / `host`
+
+当前阶段（Phase 2 MVP）仅初始化以下轻量文件，不接入真实 hooks 自动化：
+
+- `.claude/skills/hippo/README.md`
+- `.claude/hooks/README.md`
+- `.codex/skills/hippo/README.md`
+- `.codex/hooks/README.md`
+
 ## 2. `/hippo:recall`
 
 ### 目标

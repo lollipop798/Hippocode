@@ -53,8 +53,9 @@
     "regression:deep-sleep": "node ./scripts/regression-runtime-commands.mjs deep-sleep",
     "regression:deep-sleep-partial": "node ./scripts/regression-runtime-commands.mjs deep-sleep-partial",
     "regression:cli": "node ./scripts/regression-cli.mjs",
+    "regression:cli-usage": "node ./scripts/regression-cli-usage.mjs",
     "regression:runtime": "node ./scripts/regression-runtime-commands.mjs all",
-    "regression:all": "npm run typecheck && npm run build && npm run validate:memory-schema && npm run smoke && npm run regression:recall && npm run regression:runtime && npm run regression:cli"
+    "regression:all": "npm run typecheck && npm run build && npm run validate:memory-schema && npm run smoke && npm run regression:recall && npm run regression:runtime && npm run regression:cli && npm run regression:cli-usage"
   },
   "devDependencies": {
     "@types/node": "^22.10.1",

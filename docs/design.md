@@ -39,11 +39,12 @@ Hippocode 从一开始就按可发布的 TypeScript npm package 组织。
 - 文件型 memory store
 - summary-first recall / forecast / reflect / sleep 最小运行时
 - `/hippo:project-onboard` 最小项目画像初始化执行器
+- `/hippo:prune` 最小只读清理分析执行器
 - `/hippo:deep-sleep` 最小晋升执行器
 - `/hippo:status` 最小状态汇总执行器
 - smoke test 脚本与已构建产物回归入口
 - recall regression fixture 与 exposureTrace / ranking 回归脚本
-- 最小 CLI 入口，支持 `init`、`validate`、`recall`、`project-onboard`、`forecast`、`reflect`、`sleep`、`status`、`deep-sleep`
+- 最小 CLI 入口，支持 `init`、`validate`、`recall`、`project-onboard`、`forecast`、`reflect`、`sleep`、`prune`、`status`、`deep-sleep`
 - CLI 负责为 Claude Code / Codex 初始化 Hippocode 插件骨架，但不接入真实 hook 自动化
 - `.memory` 长期层基线样例与 graph 基线关系
 - Claude / Codex host adapter descriptor
@@ -140,6 +141,7 @@ Recall engine 在当前阶段已实现最小运行时，仍保持轻量启发式
 - `project-onboard` 的项目画像、当前焦点与基础 graph 初始化
 - `reflect` 的偏差识别、candidate layers 判定与 `episodic` 写入
 - `sleep` 的候选层判断、晋升建议与 `deep-sleep` 提示
+- `prune` 的只读清理建议、重复/陈旧候选识别与 telemetry 收敛
 - `deep-sleep` 的长期层写入、graph 同步与 follow-up telemetry
 - `status` 的记忆层统计、graph 健康度与候选积压汇总
 
@@ -175,6 +177,8 @@ Hippocode 的默认暴露策略固定为三层：
   写入情景层与经验候选
 - `/hippo:sleep`
   将任务执行压缩为候选知识
+- `/hippo:prune`
+  只读检查重复、过时、低价值记忆，并输出建议清理动作
 - `/hippo:deep-sleep`
   后续用于把候选晋升为长期知识
 
@@ -203,6 +207,7 @@ Hippocode 的默认暴露策略固定为三层：
 - `hippocode forecast`
 - `hippocode reflect`
 - `hippocode sleep`
+- `hippocode prune`
 - `hippocode status`
 - `hippocode deep-sleep`
 

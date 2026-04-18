@@ -181,6 +181,16 @@ async function runUsageErrorRegression(projectRoot) {
       label: "非法 recent-limit",
       args: ["status", "--recent-limit", "-1"],
       keywords: ["--recent-limit 必须是正整数", "实际收到 -1"]
+    },
+    {
+      label: "非法 min-confidence",
+      args: ["prune", "--min-confidence", "1.5"],
+      keywords: ["--min-confidence 必须是 0 到 1 之间的数字", "实际收到 1.5"]
+    },
+    {
+      label: "非法 stale-days",
+      args: ["prune", "--stale-days", "0"],
+      keywords: ["--stale-days 必须是正整数", "实际收到 0"]
     }
   ];
 

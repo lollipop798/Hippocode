@@ -380,6 +380,41 @@ async function runStatusRegression(projectRoot) {
   };
 }
 
+async function runPruneRegression(projectRoot) {
+  const response = await runCli(projectRoot, [
+    "prune",
+    "--memory-root",
+    "fixtures/sleep-regression/.memory",
+    "--include-archived",
+    "--min-confidence",
+    "0.9",
+    "--limit",
+    "4",
+    "--json"
+  ]);
+
+  assert(response.code === 0, `prune CLI 退出码异常：${response.code}\n${response.stderr}`);
+  const payload = parseJsonOutput(response.stdout, "prune CLI");
+  assert(payload.status !== "error", `prune CLI status 不应为 error，实际 ${payload.status}`);
+  assert(payload.payload?.structured?.command === "/hippo:prune", "prune CLI command 不正确。");
+  assert(payload.payload?.structured?.readOnly === true, "prune CLI 必须声明 readOnly。");
+  assert(payload.payload?.structured?.graphUnchanged === true, "prune CLI 必须声明 graphUnchanged。");
+  assert(
+    Array.isArray(payload.payload?.structured?.suggestions) &&
+      payload.payload.structured.suggestions.length > 0,
+    "prune CLI 未返回建议。"
+  );
+  assert(
+    payload.telemetry?.nextCommandHint === "/hippo:status",
+    `prune CLI nextCommandHint 期望 /hippo:status，实际 ${payload.telemetry?.nextCommandHint}`
+  );
+
+  return {
+    suggestions: payload.payload.structured.suggestions.length,
+    nextCommandHint: payload.telemetry.nextCommandHint
+  };
+}
+
 async function runDeepSleepRegression(projectRoot) {
   const tempRoot = await mkdtemp(join(tmpdir(), "hippocode-cli-regression-"));
 
@@ -446,6 +481,7 @@ async function run() {
   const forecast = await runForecastRegression(projectRoot);
   const reflect = await runReflectRegression(projectRoot);
   const sleep = await runSleepRegression(projectRoot);
+  const prune = await runPruneRegression(projectRoot);
   const status = await runStatusRegression(projectRoot);
   const deepSleep = await runDeepSleepRegression(projectRoot);
 
@@ -457,6 +493,7 @@ async function run() {
   console.log(`forecast: ${JSON.stringify(forecast)}`);
   console.log(`reflect: ${JSON.stringify(reflect)}`);
   console.log(`sleep: ${JSON.stringify(sleep)}`);
+  console.log(`prune: ${JSON.stringify(prune)}`);
   console.log(`status: ${JSON.stringify(status)}`);
   console.log(`deep-sleep: ${JSON.stringify(deepSleep)}`);
 }

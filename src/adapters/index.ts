@@ -21,7 +21,16 @@ export interface HostAdapterDescriptor {
 }
 
 const CORE_RUNTIME_COMMANDS = HIPPO_COMMANDS.filter((command) =>
-  ["/hippo:recall", "/hippo:project-onboard", "/hippo:forecast", "/hippo:reflect", "/hippo:sleep", "/hippo:deep-sleep", "/hippo:status"].includes(command)
+  [
+    "/hippo:recall",
+    "/hippo:project-onboard",
+    "/hippo:forecast",
+    "/hippo:reflect",
+    "/hippo:sleep",
+    "/hippo:prune",
+    "/hippo:deep-sleep",
+    "/hippo:status"
+  ].includes(command)
 );
 
 export const CLAUDE_HOST_ADAPTER: HostAdapterDescriptor = {

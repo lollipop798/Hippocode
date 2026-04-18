@@ -13,6 +13,7 @@ import {
   type ExposureLevel,
   type HippoCommandName,
   type MemoryLayer,
+  type PruneCommandInput,
   type ProjectOnboardCommandInput,
   type RecallCommandInput,
   type RecallResult,
@@ -32,6 +33,7 @@ const CLI_SUBCOMMANDS = [
   "forecast",
   "reflect",
   "sleep",
+  "prune",
   "status",
   "deep-sleep"
 ] as const;
@@ -126,13 +128,13 @@ export const CLI_COMMANDS: CliCommandDescriptor[] = [
   },
   {
     name: "/hippo:prune",
-    description: "清理低价值或过时的记忆。",
-    maturity: "documented"
+    description: "生成只读 prune 建议，识别低价值或过时的记忆。",
+    maturity: "implemented"
   },
   {
     name: "/hippo:status",
     description: "查看记忆系统当前状态与候选积压。",
-    maturity: "documented"
+    maturity: "implemented"
   }
 ];
 
@@ -173,6 +175,8 @@ export async function runCli(argv: string[], options: CliRunOptions = {}): Promi
         return await runReflectCommand(parsed.options, cwd, io);
       case "sleep":
         return await runSleepCommand(parsed.options, cwd, io);
+      case "prune":
+        return await runPruneCommand(parsed.options, cwd, io);
       case "status":
         return await runStatusCommand(parsed.options, cwd, io);
       case "deep-sleep":
@@ -545,6 +549,51 @@ async function runStatusCommand(
   return response.status === "error" ? 1 : 0;
 }
 
+async function runPruneCommand(
+  options: Map<string, string[]>,
+  cwd: string,
+  io: CliIo
+): Promise<number> {
+  const input: PruneCommandInput = {};
+  const exposure = getStringOption(options, "exposure");
+  const includeArchived = getBooleanOption(options, "include-archived");
+  const limit = getStringOption(options, "limit");
+  const minConfidence = getStringOption(options, "min-confidence");
+  const staleDays = getStringOption(options, "stale-days");
+  const episodicBacklogThreshold = getStringOption(options, "episodic-backlog-threshold");
+
+  if (exposure) {
+    input.exposureLevel = parseExposureLevel(exposure);
+  }
+
+  if (includeArchived) {
+    input.includeArchived = true;
+  }
+
+  if (limit) {
+    input.limit = parsePositiveInteger(limit, "limit");
+  }
+
+  if (minConfidence) {
+    input.minConfidence = parseConfidenceThreshold(minConfidence, "min-confidence");
+  }
+
+  if (staleDays) {
+    input.staleDays = parsePositiveInteger(staleDays, "stale-days");
+  }
+
+  if (episodicBacklogThreshold) {
+    input.episodicBacklogThreshold = parsePositiveInteger(
+      episodicBacklogThreshold,
+      "episodic-backlog-threshold"
+    );
+  }
+
+  const response = await createRuntime(cwd, options).executePrune(input);
+  renderEnvelope(response, getBooleanOption(options, "json"), io);
+  return response.status === "error" ? 1 : 0;
+}
+
 async function runDeepSleepCommand(
   options: Map<string, string[]>,
   cwd: string,
@@ -630,6 +679,7 @@ function renderHelp(): string {
     "  hippocode forecast --task <text> [--constraint <text>] [--dependency <id>] [--risk-profile low|medium|high] [--exposure summary|focused|full] [--memory-root <path>] [--json]",
     "  hippocode reflect --session-event <text> [--session-event <text>...] --outcome <text> [--anomaly <text>] [--lesson <text>] [--time-range <iso-interval>] [--memory-root <path>] [--json]",
     "  hippocode sleep --summary <text> [--touched-file <path>] [--validation <item>] [--tag <tag>] [--exposure summary|focused|full] [--signal-strength low|medium|high] [--memory-root <path>] [--json]",
+    "  hippocode prune [--exposure summary|focused|full] [--include-archived] [--limit <n>] [--min-confidence <0-1>] [--stale-days <n>] [--episodic-backlog-threshold <n>] [--memory-root <path>] [--json]",
     "  hippocode status [--exposure summary|focused|full] [--include-archived] [--recent-limit <n>] [--memory-root <path>] [--json]",
     "  hippocode deep-sleep --summary <text> --candidate-layer <layer> [--candidate-layer <layer>...] [--touched-file <path>] [--validation <item>] [--source-episodic-id <id>] [--tag <tag>] [--exposure summary|focused|full] [--signal-strength low|medium|high] [--memory-root <path>] [--json]",
     "",
@@ -638,6 +688,7 @@ function renderHelp(): string {
     "  - project-onboard 当前只维护 project-profile、current-focus 与基础 project graph 节点",
     "  - init 只初始化 Claude/Codex 的最小 Hippocode 插件目录说明文件，不会接入真实 hook 自动化",
     "  - forecast / reflect / sleep 目前直接对接最小 runtime，不额外实现 recallSnapshot / priorForecast 注入",
+    "  - prune 当前只返回只读建议，不会直接删除记忆条目或改写 graph",
     "  - deep-sleep 当前只会真正晋升 decision、incident、pattern、module 层",
     "  - validate 按当前 FileMemoryStore 约定校验 memory root 与 graph 快照"
   ].join("\n");
@@ -812,6 +863,16 @@ function parsePositiveInteger(value: string, optionName: string): number {
 
   if (!Number.isInteger(parsed) || parsed <= 0) {
     throw new CliUsageError(`--${optionName} 必须是正整数，实际收到 ${value}。`);
+  }
+
+  return parsed;
+}
+
+function parseConfidenceThreshold(value: string, optionName: string): number {
+  const parsed = Number.parseFloat(value);
+
+  if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1) {
+    throw new CliUsageError(`--${optionName} 必须是 0 到 1 之间的数字，实际收到 ${value}。`);
   }
 
   return parsed;

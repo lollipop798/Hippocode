@@ -121,6 +121,7 @@ Phase 1 的仓库初始化已经完成，当前进入 Phase 2 MVP。
 - 继续扩展 package-first 结构与导出入口
 - 实现文件型 memory store
 - 实现 summary-first 的 recall / forecast / reflect / sleep 最小运行时
+- 实现 `/hippo:prune` 的最小只读清理分析执行器
 - 实现 `/hippo:deep-sleep` 的最小长期层晋升执行器
 - 维护 `src/core/schema.ts` 与 `scripts/validate-memory-schema.mjs`，作为 FileMemoryStore 的最小 runtime schema guard
 - 维护 `scripts/smoke-test.mjs` 作为最小回归验证入口
@@ -130,7 +131,7 @@ Phase 1 的仓库初始化已经完成，当前进入 Phase 2 MVP。
 - 实现 Claude / Codex 的 host adapter descriptor
 - 继续完善 `.memory`、`.claude`、`.codex` 的协议与说明
 - 为 `decisions`、`incidents`、`patterns`、`modules` 维护高信号示例条目，作为 recall 基线样本
-- 维护最小 CLI 入口，当前允许实现 `init`、`validate`、`recall`、`project-onboard`、`forecast`、`reflect`、`sleep`、`status`、`deep-sleep` 子命令
+- 维护最小 CLI 入口，当前允许实现 `init`、`validate`、`recall`、`project-onboard`、`forecast`、`reflect`、`sleep`、`prune`、`status`、`deep-sleep` 子命令
 - CLI 负责为 Claude Code / Codex 初始化 Hippocode 插件骨架；当前只创建轻量 README 和目录，不接入真实 hook 自动化 wiring
 
 当前阶段暂不实现：

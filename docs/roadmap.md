@@ -37,17 +37,18 @@
 - `.memory` 文件型 store
 - graph 读写入口
 - recall / forecast / reflect / sleep 最小运行时
+- `prune` 最小只读清理分析执行器
 - `deep-sleep` 最小晋升执行器
 - Claude / Codex host adapter descriptor
 - `scripts/smoke-test.mjs` 最小回归脚本
 - `src/core/schema.ts` 与 `scripts/validate-memory-schema.mjs`
 - `fixtures/recall-regression/.memory` 与 `scripts/regression-recall-exposure.mjs`
 - `fixtures/forecast-regression/.memory`、`fixtures/reflect-regression/.memory`、`fixtures/sleep-regression/.memory`
-- `scripts/regression-runtime-commands.mjs` 与 `regression:project-onboard|forecast|reflect|sleep|runtime|all`
+- `scripts/regression-runtime-commands.mjs` 与 `regression:project-onboard|forecast|reflect|sleep|prune|runtime|all`
 - `project-onboard` 最小项目画像初始化执行器
 - `regression:status` 与记忆层/graph/候选积压的固定回归
 - `regression:deep-sleep` 与长期层晋升 / graph 同步回归
-- 最小 CLI 入口，支持 `init`、`validate`、`recall`、`project-onboard`、`forecast`、`reflect`、`sleep`、`status`、`deep-sleep`
+- 最小 CLI 入口，支持 `init`、`validate`、`recall`、`project-onboard`、`forecast`、`reflect`、`sleep`、`prune`、`status`、`deep-sleep`
 - `hippocode init` 可初始化 Claude Code / Codex 的 Hippocode 插件骨架
 - `scripts/regression-cli.mjs` 与 `regression:cli`，覆盖最小 CLI 的固定回归
 - `scripts/regression-cli-usage.mjs` 与 `regression:cli-usage`，覆盖 CLI usage/error 固定回归
@@ -100,7 +101,7 @@
 后续建议：
 
 - 扩展 `hippocode init` 的模板同步与 host 版本识别能力
-- 扩展 `hippocode recall` / `hippocode deep-sleep` 的输入模式
+- 扩展 `hippocode recall` / `hippocode prune` / `hippocode deep-sleep` 的输入模式
 - 构建本地模板同步器
 
 ## 下一轮优先级
@@ -110,6 +111,7 @@
 - `.memory` 文件读写与 schema 对齐
 - recall pipeline 与排序
 - recall / forecast / reflect / sleep 的 fixture 与回归脚本扩展
+- prune 的只读策略与候选判定细化
 - sleep / deep-sleep 候选晋升规则
 - Claude / Codex host adapter 具体化
 - CLI 初始化器

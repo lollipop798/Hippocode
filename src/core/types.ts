@@ -43,6 +43,13 @@ export type CommandStatus = "ok" | "partial" | "error";
 export type RecallScope = "task" | "module" | "project";
 export type RiskLevel = "low" | "medium" | "high";
 export type SleepSignalStrength = "low" | "medium" | "high";
+export type PruneSuggestionKind =
+  | "low-confidence"
+  | "archive-candidate"
+  | "orphan-graph-node"
+  | "episodic-backlog"
+  | "stale-entry";
+export type PruneTargetType = "entry" | "graph-node" | "layer";
 
 export interface EntityMention {
   id: string;
@@ -279,6 +286,15 @@ export interface StatusCommandInput {
   recentLimit?: number;
 }
 
+export interface PruneCommandInput {
+  exposureLevel?: ExposureLevel;
+  includeArchived?: boolean;
+  limit?: number;
+  minConfidence?: number;
+  staleDays?: number;
+  episodicBacklogThreshold?: number;
+}
+
 export interface ProjectOnboardCommandInput {
   projectName: string;
   projectSummary: string;
@@ -321,6 +337,26 @@ export interface StatusResult {
   promotableCandidates: number;
   recentEpisodicIds: string[];
   healthSignals: StatusHealthSignal[];
+}
+
+export interface PruneSuggestion {
+  id: string;
+  kind: PruneSuggestionKind;
+  targetType: PruneTargetType;
+  targetId: string;
+  reason: string;
+  confidence: number;
+  layer?: MemoryLayer;
+}
+
+export interface PruneResult {
+  command: "/hippo:prune";
+  readOnly: true;
+  graphUnchanged: true;
+  totalEntriesScanned: number;
+  graphNodesScanned: number;
+  graphEdgesScanned: number;
+  suggestions: PruneSuggestion[];
 }
 
 export interface ProjectOnboardResult {

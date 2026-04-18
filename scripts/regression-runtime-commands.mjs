@@ -457,6 +457,57 @@ async function runDeepSleepPartialRegression(projectRoot, runtimeFactory) {
   }
 }
 
+async function runPruneRegression(projectRoot, runtimeFactory) {
+  const { tempRoot, memoryRoot } = await createIsolatedMemoryRoot(projectRoot, "sleep-regression");
+
+  try {
+    const now = createFixedNow();
+    const store = runtimeFactory.createFileMemoryStore({ rootDir: memoryRoot, now });
+    const runtime = runtimeFactory.createHippoRuntime({ store, now });
+    const entriesBefore = await store.queryEntries({
+      includeArchived: true,
+      exposureLevel: "full",
+      limit: 2000
+    });
+    const graphBefore = await store.readGraph();
+
+    const response = await runtime.executePrune({
+      exposureLevel: "summary",
+      includeArchived: true,
+      limit: 8,
+      minConfidence: 0.9,
+      staleDays: 30
+    });
+
+    const entriesAfter = await store.queryEntries({
+      includeArchived: true,
+      exposureLevel: "full",
+      limit: 2000
+    });
+    const graphAfter = await store.readGraph();
+
+    assert(response.status !== "error", "prune regression 返回 error。");
+    assert(response.payload.structured.command === "/hippo:prune", "prune command 不正确。");
+    assert(Array.isArray(response.payload.structured.suggestions), "prune suggestions 必须是数组。");
+    assert(response.payload.structured.suggestions.length > 0, "prune 应返回至少一条建议。");
+    assert(response.payload.structured.readOnly === true, "prune 必须声明 readOnly。");
+    assert(response.payload.structured.graphUnchanged === true, "prune 必须声明 graphUnchanged。");
+    assert(entriesAfter.length === entriesBefore.length, "prune 不应改动 entry 数量。");
+    assert(graphAfter.nodes.length === graphBefore.nodes.length, "prune 不应新增或删除 graph nodes。");
+    assert(graphAfter.edges.length === graphBefore.edges.length, "prune 不应新增或删除 graph edges。");
+    assertTelemetry(response, "summary", ["summary"], "/hippo:status");
+
+    return {
+      suggestions: response.payload.structured.suggestions.length,
+      totalEntriesScanned: response.payload.structured.totalEntriesScanned,
+      graphNodes: graphAfter.nodes.length,
+      graphEdges: graphAfter.edges.length
+    };
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+}
+
 async function run() {
   const projectRoot = process.cwd();
   const mode = process.argv[2] ?? "all";
@@ -464,7 +515,7 @@ async function run() {
 
   const selectedModes =
     mode === "all"
-      ? ["project-onboard", "forecast", "reflect", "sleep", "status", "deep-sleep", "deep-sleep-partial"]
+      ? ["project-onboard", "forecast", "reflect", "sleep", "status", "deep-sleep", "deep-sleep-partial", "prune"]
       : [mode];
   const results = [];
 
@@ -504,6 +555,11 @@ async function run() {
         "deep-sleep-partial",
         await runDeepSleepPartialRegression(projectRoot, runtimeFactory)
       ]);
+      continue;
+    }
+
+    if (selectedMode === "prune") {
+      results.push(["prune", await runPruneRegression(projectRoot, runtimeFactory)]);
       continue;
     }
 

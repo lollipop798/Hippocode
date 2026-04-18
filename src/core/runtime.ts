@@ -17,6 +17,9 @@ import type {
   MemoryGraphNode,
   MemoryGraphSnapshot,
   MemoryLayer,
+  PruneCommandInput,
+  PruneResult,
+  PruneSuggestion,
   ProjectOnboardCommandInput,
   ProjectOnboardResult,
   RecallCommandInput,
@@ -46,6 +49,7 @@ export interface HippoRuntime {
   executeReflect(input: ReflectCommandInput): Promise<CommandEnvelope<ReflectInsight>>;
   executeSleep(input: SleepCommandInput): Promise<CommandEnvelope<SleepEntry>>;
   executeDeepSleep(input: DeepSleepCommandInput): Promise<CommandEnvelope<DeepSleepResult>>;
+  executePrune(input?: PruneCommandInput): Promise<CommandEnvelope<PruneResult>>;
   executeStatus(input?: StatusCommandInput): Promise<CommandEnvelope<StatusResult>>;
   executeCommand(
     command: HippoCommandName,
@@ -56,6 +60,7 @@ export interface HippoRuntime {
       | ReflectCommandInput
       | SleepCommandInput
       | DeepSleepCommandInput
+      | PruneCommandInput
       | StatusCommandInput
   ): Promise<
     | CommandEnvelope<RecallResult>
@@ -64,6 +69,7 @@ export interface HippoRuntime {
     | CommandEnvelope<ReflectInsight>
     | CommandEnvelope<SleepEntry>
     | CommandEnvelope<DeepSleepResult>
+    | CommandEnvelope<PruneResult>
     | CommandEnvelope<StatusResult>
   >;
 }
@@ -549,6 +555,61 @@ export function createHippoRuntime(options: HippoRuntimeOptions): HippoRuntime {
     };
   }
 
+  async function executePrune(
+    input: PruneCommandInput = {}
+  ): Promise<CommandEnvelope<PruneResult>> {
+    const entries = await options.store.queryEntries({
+      includeArchived: input.includeArchived ?? false,
+      exposureLevel: input.exposureLevel ?? "summary",
+      limit: 2000
+    });
+    const graph = await options.store.readGraph();
+    const limit = Math.max(input.limit ?? 10, 1);
+    const suggestions = buildPruneSuggestions({
+      entries,
+      graph,
+      now,
+      minConfidence: input.minConfidence ?? 0.5,
+      staleDays: input.staleDays ?? 30,
+      episodicBacklogThreshold: input.episodicBacklogThreshold ?? 5
+    }).slice(0, limit);
+
+    const structured: PruneResult = {
+      command: "/hippo:prune",
+      readOnly: true,
+      graphUnchanged: true,
+      totalEntriesScanned: entries.length,
+      graphNodesScanned: graph.nodes.length,
+      graphEdgesScanned: graph.edges.length,
+      suggestions
+    };
+
+    return {
+      status: suggestions.length > 0 ? "ok" : "partial",
+      payload: {
+        humanReadable: summarizeText(
+          suggestions.length > 0
+            ? `已生成 ${suggestions.length} 条 prune 建议；当前为只读分析，不会直接删除记忆或改写 graph。建议先通过 /hippo:status 或 /hippo:recall 复核影响范围。`
+            : "当前未发现明显需要 prune 的候选；建议继续通过 /hippo:status 观察积压，必要时再扩大暴露层复核。",
+          260
+        ),
+        structured
+      },
+      telemetry: {
+        confidence: suggestions.length > 0 ? 0.77 : 0.62,
+        exposureLevel: input.exposureLevel ?? "summary",
+        dependencies: uniqueStrings([
+          `entries:${entries.length}`,
+          `graph:nodes:${graph.nodes.length}`,
+          `graph:edges:${graph.edges.length}`,
+          ...suggestions.map((suggestion) => suggestion.targetId)
+        ]),
+        exposureTrace: [input.exposureLevel ?? "summary"],
+        nextCommandHint: "/hippo:status"
+      }
+    };
+  }
+
   async function executeCommand(
     command: HippoCommandName,
     input:
@@ -558,6 +619,7 @@ export function createHippoRuntime(options: HippoRuntimeOptions): HippoRuntime {
       | ReflectCommandInput
       | SleepCommandInput
       | DeepSleepCommandInput
+      | PruneCommandInput
       | StatusCommandInput
   ): Promise<
     | CommandEnvelope<RecallResult>
@@ -566,6 +628,7 @@ export function createHippoRuntime(options: HippoRuntimeOptions): HippoRuntime {
     | CommandEnvelope<ReflectInsight>
     | CommandEnvelope<SleepEntry>
     | CommandEnvelope<DeepSleepResult>
+    | CommandEnvelope<PruneResult>
     | CommandEnvelope<StatusResult>
   > {
     switch (command) {
@@ -581,6 +644,8 @@ export function createHippoRuntime(options: HippoRuntimeOptions): HippoRuntime {
         return executeSleep(input as SleepCommandInput);
       case "/hippo:deep-sleep":
         return executeDeepSleep(input as DeepSleepCommandInput);
+      case "/hippo:prune":
+        return executePrune(input as PruneCommandInput);
       case "/hippo:status":
         return executeStatus(input as StatusCommandInput);
       default:
@@ -595,6 +660,7 @@ export function createHippoRuntime(options: HippoRuntimeOptions): HippoRuntime {
     executeReflect,
     executeSleep,
     executeDeepSleep,
+    executePrune,
     executeStatus,
     executeCommand
   };
@@ -905,6 +971,104 @@ function buildStatusHealthSignals(input: {
   }
 
   return signals;
+}
+
+function buildPruneSuggestions(input: {
+  entries: MemoryEntry[];
+  graph: MemoryGraphSnapshot;
+  now: () => Date;
+  minConfidence: number;
+  staleDays: number;
+  episodicBacklogThreshold: number;
+}): PruneSuggestion[] {
+  const suggestions: PruneSuggestion[] = [];
+  const seen = new Set<string>();
+  const staleThreshold = input.now().getTime() - Math.max(input.staleDays, 0) * 24 * 60 * 60 * 1000;
+  const episodicEntries = input.entries.filter((entry) => entry.layer === "episodic");
+
+  const pushSuggestion = (suggestion: PruneSuggestion) => {
+    const key = `${suggestion.kind}:${suggestion.targetType}:${suggestion.targetId}`;
+    if (seen.has(key)) {
+      return;
+    }
+
+    seen.add(key);
+    suggestions.push(suggestion);
+  };
+
+  for (const entry of input.entries) {
+    if (typeof entry.confidence === "number" && entry.confidence < input.minConfidence) {
+      pushSuggestion({
+        id: `prune-low-confidence-${entry.id}`,
+        kind: "low-confidence",
+        targetType: "entry",
+        targetId: entry.id,
+        layer: entry.layer,
+        reason: `confidence=${entry.confidence.toFixed(2)} 低于阈值 ${input.minConfidence.toFixed(2)}。`,
+        confidence: Math.max(0.55, Math.min(0.95, 1 - entry.confidence / Math.max(input.minConfidence, 0.01)))
+      });
+    }
+
+    const lastUpdatedAt = Date.parse(entry.updatedAt ?? entry.createdAt);
+    if (!Number.isNaN(lastUpdatedAt) && lastUpdatedAt < staleThreshold) {
+      pushSuggestion({
+        id: `prune-stale-${entry.id}`,
+        kind: "stale-entry",
+        targetType: "entry",
+        targetId: entry.id,
+        layer: entry.layer,
+        reason: `条目超过 ${input.staleDays} 天未更新，建议复核是否仍应保留在当前层。`,
+        confidence: 0.66
+      });
+    }
+
+    if (entry.layer === "archive") {
+      pushSuggestion({
+        id: `prune-archive-${entry.id}`,
+        kind: "archive-candidate",
+        targetType: "entry",
+        targetId: entry.id,
+        layer: entry.layer,
+        reason: "该条目已位于 archive 层，可复核是否继续保留。",
+        confidence: 0.58
+      });
+    }
+  }
+
+  if (episodicEntries.length > input.episodicBacklogThreshold) {
+    pushSuggestion({
+      id: "prune-episodic-backlog",
+      kind: "episodic-backlog",
+      targetType: "layer",
+      targetId: "episodic",
+      layer: "episodic",
+      reason: `episodic 积压 ${episodicEntries.length} 条，已超过阈值 ${input.episodicBacklogThreshold}。`,
+      confidence: 0.81
+    });
+  }
+
+  const nodeIdsInEdges = new Set(input.graph.edges.flatMap((edge) => [edge.from, edge.to]));
+  for (const node of input.graph.nodes) {
+    if (!nodeIdsInEdges.has(node.id)) {
+      pushSuggestion({
+        id: `prune-orphan-node-${node.id}`,
+        kind: "orphan-graph-node",
+        targetType: "graph-node",
+        targetId: node.id,
+        layer: node.layer,
+        reason: "该 graph 节点没有任何边连接，建议复核是否仍有联想价值。",
+        confidence: 0.72
+      });
+    }
+  }
+
+  return suggestions.sort((left, right) => {
+    if (right.confidence !== left.confidence) {
+      return right.confidence - left.confidence;
+    }
+
+    return left.id.localeCompare(right.id);
+  });
 }
 
 function readMetadataString(

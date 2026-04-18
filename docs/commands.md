@@ -4,7 +4,7 @@
 
 所有命令统一使用 `/hippo:` 命名空间，避免与宿主内置命令冲突。
 
-当前仓库已经为 `/hippo:recall`、`/hippo:project-onboard`、`/hippo:forecast`、`/hippo:reflect`、`/hippo:sleep`、`/hippo:prune`、`/hippo:deep-sleep`、`/hippo:status` 提供可调用的最小 library runtime；其中 `/hippo:prune` 当前仅实现最小只读分析能力，不执行删除、归档或 graph 重写；其余扩展命令目前只保留协议语义与宿主映射边界，执行器留待后续阶段实现。
+当前仓库已经为 `/hippo:recall`、`/hippo:associate`、`/hippo:active-recall`、`/hippo:project-onboard`、`/hippo:forecast`、`/hippo:reflect`、`/hippo:sleep`、`/hippo:prune`、`/hippo:deep-sleep`、`/hippo:status` 提供可调用的最小 library runtime；其中 `/hippo:associate`、`/hippo:active-recall`、`/hippo:prune` 当前都只实现最小只读分析能力，不执行删除、归档或 graph 重写。
 
 统一输出结构：
 
@@ -34,7 +34,7 @@
 - `structured` 供程序消费
 - `scripts/smoke-test.mjs` 当前以 `/hippo:recall` 与 `/hippo:sleep` 的最小输入输出合同为基准做回归验证
 - `scripts/regression-recall-exposure.mjs` 当前以固定 fixture 验证 `/hippo:recall` 的排序方向与 `exposureTrace`
-- `scripts/regression-runtime-commands.mjs` 当前以固定 fixture 验证 `/hippo:project-onboard`、`/hippo:forecast`、`/hippo:reflect`、`/hippo:sleep`、`/hippo:prune`、`/hippo:status`、`/hippo:deep-sleep` 的结构化输出、写入边界与 telemetry
+- `scripts/regression-runtime-commands.mjs` 当前以固定 fixture 验证 `/hippo:project-onboard`、`/hippo:forecast`、`/hippo:reflect`、`/hippo:sleep`、`/hippo:associate`、`/hippo:active-recall`、`/hippo:prune`、`/hippo:status`、`/hippo:deep-sleep` 的结构化输出、写入边界与 telemetry
 
 ## CLI 初始化命令：`hippocode init`
 
@@ -53,6 +53,10 @@
 - `.claude/hooks/README.md`
 - `.codex/skills/hippo/README.md`
 - `.codex/hooks/README.md`
+
+补充说明：
+
+- `hippocode commands [--json]` 可输出当前已实现的 `/hippo:` 命令描述，便于宿主与脚本探测能力边界
 
 ## 2. `/hippo:recall`
 
@@ -263,15 +267,45 @@
 
 ## 6. 扩展命令
 
-以下命令中，只有未单列输入输出合同的命令仍处于协议阶段：
-
 ### `/hippo:associate`
 
 在 recall 结果基础上做关系扩散，寻找关联决策、事故与模式。
 
+### 当前最小实现
+
+- 只读扫描 `.memory` 与 `associative-graph.json`
+- 允许通过 `seedIds` 指定 graph 起点，按一到两跳扩散收集关联 token
+- CLI 当前支持 `--seed-id` 与 `--depth`；其中 `depth` 运行时会收敛到 `1..2`
+- 复用 recall 排序器，但返回 `command = /hippo:associate`
+- telemetry 当前默认返回 `nextCommandHint = /hippo:forecast`
+
+#### 当前回归断言
+
+- `regression:associate` 作为单命令入口执行 `scripts/regression-runtime-commands.mjs associate`
+- 必须返回 `command = /hippo:associate`
+- 至少一个 match 应携带 `linkedNodeIds`
+- 不得写入 memory entries 或 graph
+- telemetry 必须保持 `nextCommandHint = /hippo:forecast`
+
 ### `/hippo:active-recall`
 
 在大范围修改、迁移或设计前，强制执行一次更主动的 recall。
+
+### 当前最小实现
+
+- 只读扫描 `.memory` 与 `associative-graph.json`
+- 根据 `riskProfile` 自动补充 risk / incident / constraint / regression 等前置信号
+- 复用 recall 排序器，但返回 `command = /hippo:active-recall`
+- 会优先把高分 match 与 incident 相关条目压缩到 `risks`
+- telemetry 当前默认返回 `nextCommandHint = /hippo:forecast`
+
+#### 当前回归断言
+
+- `regression:active-recall` 作为单命令入口执行 `scripts/regression-runtime-commands.mjs active-recall`
+- 必须返回 `command = /hippo:active-recall`
+- 必须返回非空 `risks`
+- 不得写入 memory entries 或 graph
+- telemetry 必须保持 `nextCommandHint = /hippo:forecast`
 
 ### `/hippo:deep-sleep`
 
@@ -378,4 +412,4 @@ hippocode prune --include-archived --min-confidence 0.9 --stale-days 30 --json
 - 依赖项
 - 建议的下一条命令
 
-当前 smoke test 仅覆盖 `summary` 暴露层下的 recall / sleep happy path；`focused`、`full` 的暴露轨迹与 incident 优先排序由 `regression:recall` 基于固定 fixture 继续验证。`project-onboard`、`forecast`、`reflect`、`sleep`、`prune`、`status`、`deep-sleep` 的结构化输出、写入边界、只读约束、状态汇总、长期层晋升与 follow-up telemetry 由 `regression:runtime` 及其单命令入口继续验证；其余扩展命令仍保留到后续阶段。
+当前 smoke test 仅覆盖 `summary` 暴露层下的 recall / sleep happy path；`focused`、`full` 的暴露轨迹与 incident 优先排序由 `regression:recall` 基于固定 fixture 继续验证。`project-onboard`、`forecast`、`reflect`、`sleep`、`associate`、`active-recall`、`prune`、`status`、`deep-sleep` 的结构化输出、写入边界、只读约束、状态汇总、长期层晋升与 follow-up telemetry 由 `regression:runtime` 及其单命令入口继续验证。

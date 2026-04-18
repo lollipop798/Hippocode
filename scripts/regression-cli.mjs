@@ -114,6 +114,81 @@ async function runRecallRegression(projectRoot) {
   };
 }
 
+async function runAssociateRegression(projectRoot) {
+  const response = await runCli(projectRoot, [
+    "associate",
+    "--memory-root",
+    "fixtures/recall-regression/.memory",
+    "--prompt",
+    "runtime recall regression relation expansion",
+    "--seed-id",
+    "incident:I-2026-04-13-001",
+    "--depth",
+    "1",
+    "--exposure",
+    "focused",
+    "--json"
+  ]);
+
+  assert(response.code === 0, `associate CLI 退出码异常：${response.code}\n${response.stderr}`);
+  const payload = parseJsonOutput(response.stdout, "associate CLI");
+  assert(payload.status !== "error", `associate CLI status 不应为 error，实际 ${payload.status}`);
+  assert(payload.payload?.structured?.command === "/hippo:associate", "associate CLI command 不正确。");
+  assert(
+    Array.isArray(payload.payload?.structured?.matches) && payload.payload.structured.matches.length >= 2,
+    "associate CLI 未返回足够的 matches。"
+  );
+  assert(
+    payload.payload.structured.matches.some((match) => Array.isArray(match.linkedNodeIds) && match.linkedNodeIds.length > 0),
+    "associate CLI 至少应返回一个带 linkedNodeIds 的 match。"
+  );
+  assert(
+    payload.telemetry?.nextCommandHint === "/hippo:forecast",
+    `associate CLI nextCommandHint 期望 /hippo:forecast，实际 ${payload.telemetry?.nextCommandHint}`
+  );
+
+  return {
+    matches: payload.payload.structured.matches.length,
+    nextCommandHint: payload.telemetry.nextCommandHint
+  };
+}
+
+async function runActiveRecallRegression(projectRoot) {
+  const response = await runCli(projectRoot, [
+    "active-recall",
+    "--memory-root",
+    "fixtures/recall-regression/.memory",
+    "--prompt",
+    "before changing runtime recall ranking",
+    "--risk-profile",
+    "high",
+    "--exposure",
+    "focused",
+    "--json"
+  ]);
+
+  assert(response.code === 0, `active-recall CLI 退出码异常：${response.code}\n${response.stderr}`);
+  const payload = parseJsonOutput(response.stdout, "active-recall CLI");
+  assert(payload.status !== "error", `active-recall CLI status 不应为 error，实际 ${payload.status}`);
+  assert(
+    payload.payload?.structured?.command === "/hippo:active-recall",
+    "active-recall CLI command 不正确。"
+  );
+  assert(
+    Array.isArray(payload.payload?.structured?.risks) && payload.payload.structured.risks.length > 0,
+    "active-recall CLI risks 为空。"
+  );
+  assert(
+    payload.telemetry?.nextCommandHint === "/hippo:forecast",
+    `active-recall CLI nextCommandHint 期望 /hippo:forecast，实际 ${payload.telemetry?.nextCommandHint}`
+  );
+
+  return {
+    matches: payload.payload.structured.matches.length,
+    risks: payload.payload.structured.risks.length
+  };
+}
+
 async function runProjectOnboardRegression(projectRoot) {
   const tempRoot = await mkdtemp(join(tmpdir(), "hippocode-cli-onboard-"));
 
@@ -477,6 +552,8 @@ async function run() {
   const validate = await runValidateRegression(projectRoot);
   const init = await runInitRegression(projectRoot);
   const recall = await runRecallRegression(projectRoot);
+  const associate = await runAssociateRegression(projectRoot);
+  const activeRecall = await runActiveRecallRegression(projectRoot);
   const projectOnboard = await runProjectOnboardRegression(projectRoot);
   const forecast = await runForecastRegression(projectRoot);
   const reflect = await runReflectRegression(projectRoot);
@@ -489,6 +566,8 @@ async function run() {
   console.log(`validate: ${JSON.stringify(validate)}`);
   console.log(`init: ${JSON.stringify(init)}`);
   console.log(`recall: ${JSON.stringify(recall)}`);
+  console.log(`associate: ${JSON.stringify(associate)}`);
+  console.log(`active-recall: ${JSON.stringify(activeRecall)}`);
   console.log(`project-onboard: ${JSON.stringify(projectOnboard)}`);
   console.log(`forecast: ${JSON.stringify(forecast)}`);
   console.log(`reflect: ${JSON.stringify(reflect)}`);

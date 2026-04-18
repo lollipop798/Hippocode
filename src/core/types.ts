@@ -242,6 +242,15 @@ export interface RecallCommandInput {
   limit?: number;
 }
 
+export interface AssociateCommandInput extends RecallCommandInput {
+  seedIds?: string[];
+  depth?: number;
+}
+
+export interface ActiveRecallCommandInput extends RecallCommandInput {
+  riskProfile?: RiskLevel;
+}
+
 export interface ForecastCommandInput {
   taskDescription: string;
   constraints: string[];

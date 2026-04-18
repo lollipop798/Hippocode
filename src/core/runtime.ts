@@ -5,6 +5,8 @@ import {
   createDefaultRecallPipelineConfig
 } from "./recall-engine.js";
 import type {
+  ActiveRecallCommandInput,
+  AssociateCommandInput,
   CommandEnvelope,
   DeepSleepCommandInput,
   DeepSleepResult,
@@ -42,6 +44,8 @@ export interface HippoRuntimeOptions {
 
 export interface HippoRuntime {
   executeRecall(input: RecallCommandInput): Promise<CommandEnvelope<RecallResult>>;
+  executeAssociate(input: AssociateCommandInput): Promise<CommandEnvelope<RecallResult>>;
+  executeActiveRecall(input: ActiveRecallCommandInput): Promise<CommandEnvelope<RecallResult>>;
   executeProjectOnboard(
     input: ProjectOnboardCommandInput
   ): Promise<CommandEnvelope<ProjectOnboardResult>>;
@@ -55,6 +59,8 @@ export interface HippoRuntime {
     command: HippoCommandName,
     input:
       | RecallCommandInput
+      | AssociateCommandInput
+      | ActiveRecallCommandInput
       | ProjectOnboardCommandInput
       | ForecastCommandInput
       | ReflectCommandInput
@@ -96,6 +102,78 @@ export function createHippoRuntime(options: HippoRuntimeOptions): HippoRuntime {
     const graph = await options.store.readGraph();
 
     return buildRecallCommand(input, { entries, graph }, recallConfig);
+  }
+
+  async function executeAssociate(
+    input: AssociateCommandInput
+  ): Promise<CommandEnvelope<RecallResult>> {
+    const graph = await options.store.readGraph();
+    const associationTokens = collectAssociationTokens(graph, input.seedIds ?? [], input.depth ?? 1);
+    const entries = await options.store.queryEntries({
+      includeArchived: false,
+      exposureLevel: input.exposureLevel ?? "focused",
+      limit: 2000
+    });
+    const response = buildRecallCommand(
+      {
+        ...input,
+        prompt: uniqueStrings([input.prompt, ...associationTokens]).join(" "),
+        intent: input.intent ?? "associate",
+        exposureLevel: input.exposureLevel ?? "focused"
+      },
+      { entries, graph },
+      recallConfig
+    );
+
+    return retagRecallResponse(response, "/hippo:associate", "/hippo:forecast");
+  }
+
+  async function executeActiveRecall(
+    input: ActiveRecallCommandInput
+  ): Promise<CommandEnvelope<RecallResult>> {
+    const riskTokens = buildActiveRecallRiskTokens(input.riskProfile ?? "medium");
+    const entries = await options.store.queryEntries({
+      includeArchived: false,
+      exposureLevel: input.exposureLevel ?? "focused",
+      limit: 2000
+    });
+    const graph = await options.store.readGraph();
+    const response = buildRecallCommand(
+      {
+        ...input,
+        prompt: uniqueStrings([input.prompt, ...riskTokens]).join(" "),
+        intent: input.intent ?? "active-recall",
+        filters: uniqueStrings([...(input.filters ?? []), ...riskTokens]),
+        exposureLevel: input.exposureLevel ?? "focused"
+      },
+      { entries, graph },
+      recallConfig
+    );
+    const risks = uniqueStrings([
+      ...response.payload.structured.risks,
+      ...response.payload.structured.matches
+        .filter((match) => match.entry.layer === "incident" || match.score >= 0.75)
+        .map((match) => `复核 ${match.entry.id}: ${match.entry.summary}`)
+    ]).slice(0, 5);
+
+    return retagRecallResponse(
+      {
+        ...response,
+        payload: {
+          ...response.payload,
+          structured: {
+            ...response.payload.structured,
+            risks
+          }
+        },
+        telemetry: {
+          ...response.telemetry,
+          confidence: Math.max(response.telemetry.confidence, risks.length > 0 ? 0.7 : 0.52)
+        }
+      },
+      "/hippo:active-recall",
+      "/hippo:forecast"
+    );
   }
 
   async function executeProjectOnboard(
@@ -614,6 +692,8 @@ export function createHippoRuntime(options: HippoRuntimeOptions): HippoRuntime {
     command: HippoCommandName,
     input:
       | RecallCommandInput
+      | AssociateCommandInput
+      | ActiveRecallCommandInput
       | ProjectOnboardCommandInput
       | ForecastCommandInput
       | ReflectCommandInput
@@ -634,6 +714,10 @@ export function createHippoRuntime(options: HippoRuntimeOptions): HippoRuntime {
     switch (command) {
       case "/hippo:recall":
         return executeRecall(input as RecallCommandInput);
+      case "/hippo:associate":
+        return executeAssociate(input as AssociateCommandInput);
+      case "/hippo:active-recall":
+        return executeActiveRecall(input as ActiveRecallCommandInput);
       case "/hippo:project-onboard":
         return executeProjectOnboard(input as ProjectOnboardCommandInput);
       case "/hippo:forecast":
@@ -655,6 +739,8 @@ export function createHippoRuntime(options: HippoRuntimeOptions): HippoRuntime {
 
   return {
     executeRecall,
+    executeAssociate,
+    executeActiveRecall,
     executeProjectOnboard,
     executeForecast,
     executeReflect,
@@ -680,6 +766,88 @@ function buildForecastAssumptions(
   ];
 
   return uniqueStrings(assumptions);
+}
+
+function retagRecallResponse(
+  response: CommandEnvelope<RecallResult>,
+  command: RecallResult["command"],
+  nextCommandHint: HippoCommandName
+): CommandEnvelope<RecallResult> {
+  return {
+    ...response,
+    payload: {
+      ...response.payload,
+      structured: {
+        ...response.payload.structured,
+        command
+      }
+    },
+    telemetry: {
+      ...response.telemetry,
+      nextCommandHint
+    }
+  };
+}
+
+function collectAssociationTokens(
+  graph: MemoryGraphSnapshot,
+  seedIds: string[],
+  depth: number
+): string[] {
+  if (seedIds.length === 0) {
+    return [];
+  }
+
+  const allowedDepth = Math.max(1, Math.min(depth, 2));
+  const nodesById = new Map(graph.nodes.map((node) => [node.id, node]));
+  const adjacency = new Map<string, string[]>();
+
+  for (const edge of graph.edges) {
+    adjacency.set(edge.from, [...(adjacency.get(edge.from) ?? []), edge.to]);
+    adjacency.set(edge.to, [...(adjacency.get(edge.to) ?? []), edge.from]);
+  }
+
+  const tokens: string[] = [];
+  const queue = seedIds.map((id) => ({ id, level: 0 }));
+  const visited = new Set<string>();
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current || visited.has(current.id) || current.level > allowedDepth) {
+      continue;
+    }
+
+    visited.add(current.id);
+    const node = nodesById.get(current.id);
+    if (node) {
+      tokens.push(node.title, node.summary, ...node.keywords);
+    }
+
+    if (current.level === allowedDepth) {
+      continue;
+    }
+
+    for (const neighborId of adjacency.get(current.id) ?? []) {
+      if (!visited.has(neighborId)) {
+        queue.push({ id: neighborId, level: current.level + 1 });
+      }
+    }
+  }
+
+  return uniqueStrings(tokens.flatMap((token) => tokenizeText(token)));
+}
+
+function buildActiveRecallRiskTokens(riskProfile: RiskLevel): string[] {
+  const base = ["risk", "incident", "constraint"];
+  if (riskProfile === "high") {
+    return [...base, "regression", "boundary", "validation"];
+  }
+
+  if (riskProfile === "low") {
+    return [...base, "check"];
+  }
+
+  return [...base, "regression"];
 }
 
 function buildForecastSteps(

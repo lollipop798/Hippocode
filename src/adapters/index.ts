@@ -23,6 +23,8 @@ export interface HostAdapterDescriptor {
 const CORE_RUNTIME_COMMANDS = HIPPO_COMMANDS.filter((command) =>
   [
     "/hippo:recall",
+    "/hippo:associate",
+    "/hippo:active-recall",
     "/hippo:project-onboard",
     "/hippo:forecast",
     "/hippo:reflect",
@@ -38,7 +40,7 @@ export const CLAUDE_HOST_ADAPTER: HostAdapterDescriptor = {
   lifecycleEvents: [...HOST_LIFECYCLE_EVENTS],
   supportedCommands: [...CORE_RUNTIME_COMMANDS],
   notes:
-    "Claude 宿主优先使用 summary-first 输出，并在 sessionStart / preTool / postTool / sessionEnd 四类场景对接 recall、forecast、reflect、sleep。"
+    "Claude 宿主优先使用 summary-first 输出，并在 sessionStart / preTool / postTool / sessionEnd 四类场景对接 recall、associate、active-recall、forecast、reflect、sleep。"
 };
 
 export const CODEX_HOST_ADAPTER: HostAdapterDescriptor = {
@@ -46,7 +48,7 @@ export const CODEX_HOST_ADAPTER: HostAdapterDescriptor = {
   lifecycleEvents: [...HOST_LIFECYCLE_EVENTS],
   supportedCommands: [...CORE_RUNTIME_COMMANDS],
   notes:
-    "Codex 宿主保持与 Claude 一致的命令契约，但输出更偏向结构化和 CLI 友好的摘要。"
+    "Codex 宿主保持与 Claude 一致的命令契约，但输出更偏向结构化和 CLI 友好的摘要，并支持 associate / active-recall 的只读召回场景。"
 };
 
 export const HOST_ADAPTERS: HostAdapterDescriptor[] = [

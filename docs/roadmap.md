@@ -45,10 +45,14 @@
 - `fixtures/recall-regression/.memory` 与 `scripts/regression-recall-exposure.mjs`
 - `fixtures/forecast-regression/.memory`、`fixtures/reflect-regression/.memory`、`fixtures/sleep-regression/.memory`
 - `scripts/regression-runtime-commands.mjs` 与 `regression:project-onboard|forecast|reflect|sleep|prune|runtime|all`
+- `regression:associate` 与 graph 关系扩散 / 只读边界回归
+- `regression:active-recall` 与高风险前置召回 / 只读边界回归
 - `project-onboard` 最小项目画像初始化执行器
 - `regression:status` 与记忆层/graph/候选积压的固定回归
 - `regression:deep-sleep` 与长期层晋升 / graph 同步回归
-- 最小 CLI 入口，支持 `init`、`validate`、`recall`、`project-onboard`、`forecast`、`reflect`、`sleep`、`prune`、`status`、`deep-sleep`
+- `regression:deep-sleep-partial` 与拒绝路径 / 不改写 graph 的固定回归
+- 最小 CLI 入口，支持 `init`、`validate`、`recall`、`associate`、`active-recall`、`project-onboard`、`forecast`、`reflect`、`sleep`、`prune`、`status`、`deep-sleep`
+- `hippocode commands [--json]` 作为当前已实现命令的能力探测入口
 - `hippocode init` 可初始化 Claude Code / Codex 的 Hippocode 插件骨架
 - `scripts/regression-cli.mjs` 与 `regression:cli`，覆盖最小 CLI 的固定回归
 - `scripts/regression-cli-usage.mjs` 与 `regression:cli-usage`，覆盖 CLI usage/error 固定回归

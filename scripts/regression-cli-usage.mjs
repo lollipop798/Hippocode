@@ -135,6 +135,16 @@ async function runUsageErrorRegression(projectRoot) {
       keywords: ["缺少必填参数 --prompt"]
     },
     {
+      label: "associate 缺少 prompt",
+      args: ["associate"],
+      keywords: ["缺少必填参数 --prompt"]
+    },
+    {
+      label: "active-recall 缺少 prompt",
+      args: ["active-recall"],
+      keywords: ["缺少必填参数 --prompt"]
+    },
+    {
       label: "project-onboard 缺少 focus",
       args: [
         "project-onboard",
@@ -176,6 +186,11 @@ async function runUsageErrorRegression(projectRoot) {
       label: "非法 limit",
       args: ["recall", "--prompt", "runtime", "--limit", "0"],
       keywords: ["--limit 必须是正整数", "实际收到 0"]
+    },
+    {
+      label: "非法 associate depth",
+      args: ["associate", "--prompt", "runtime", "--depth", "0"],
+      keywords: ["--depth 必须是正整数", "实际收到 0"]
     },
     {
       label: "非法 recent-limit",

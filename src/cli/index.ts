@@ -6,6 +6,8 @@ import { ensureDir, fileExists, writeFileAtomic } from "../utils/fs.js";
 import {
   EXPOSURE_LEVELS,
   MEMORY_LAYERS,
+  type ActiveRecallCommandInput,
+  type AssociateCommandInput,
   type CommandEnvelope,
   type ForecastCommandInput,
   type DeepSleepCommandInput,
@@ -29,6 +31,8 @@ const CLI_SUBCOMMANDS = [
   "init",
   "validate",
   "recall",
+  "associate",
+  "active-recall",
   "project-onboard",
   "forecast",
   "reflect",
@@ -109,12 +113,12 @@ export const CLI_COMMANDS: CliCommandDescriptor[] = [
   {
     name: "/hippo:associate",
     description: "做更深一层的关系扩散与联想召回。",
-    maturity: "planned"
+    maturity: "implemented"
   },
   {
     name: "/hippo:active-recall",
     description: "在高风险任务前触发更主动的 recall。",
-    maturity: "planned"
+    maturity: "implemented"
   },
   {
     name: "/hippo:deep-sleep",
@@ -167,6 +171,10 @@ export async function runCli(argv: string[], options: CliRunOptions = {}): Promi
         return await runInitCommand(parsed.options, cwd, io);
       case "recall":
         return await runRecallCommand(parsed.options, cwd, io);
+      case "associate":
+        return await runAssociateCommand(parsed.options, cwd, io);
+      case "active-recall":
+        return await runActiveRecallCommand(parsed.options, cwd, io);
       case "project-onboard":
         return await runProjectOnboardCommand(parsed.options, cwd, io);
       case "forecast":
@@ -377,6 +385,101 @@ async function runRecallCommand(
   }
 
   const response = await createRuntime(cwd, options).executeRecall(input);
+  renderEnvelope(response, getBooleanOption(options, "json"), io);
+  return response.status === "error" ? 1 : 0;
+}
+
+async function runAssociateCommand(
+  options: Map<string, string[]>,
+  cwd: string,
+  io: CliIo
+): Promise<number> {
+  const input: AssociateCommandInput = {
+    prompt: requireStringOption(options, "prompt"),
+    scope: parseRecallScope(getStringOption(options, "scope") ?? "task")
+  };
+  const intent = getStringOption(options, "intent");
+  const focusPath = getStringOption(options, "focus-path");
+  const filters = getMultiValueOption(options, "filter");
+  const seedIds = getMultiValueOption(options, "seed-id");
+  const exposure = getStringOption(options, "exposure");
+  const limit = getStringOption(options, "limit");
+  const depth = getStringOption(options, "depth");
+
+  if (intent) {
+    input.intent = intent;
+  }
+
+  if (focusPath) {
+    input.focusPath = focusPath;
+  }
+
+  if (filters.length > 0) {
+    input.filters = filters;
+  }
+
+  if (seedIds.length > 0) {
+    input.seedIds = seedIds;
+  }
+
+  if (exposure) {
+    input.exposureLevel = parseExposureLevel(exposure);
+  }
+
+  if (limit) {
+    input.limit = parsePositiveInteger(limit, "limit");
+  }
+
+  if (depth) {
+    input.depth = parsePositiveInteger(depth, "depth");
+  }
+
+  const response = await createRuntime(cwd, options).executeAssociate(input);
+  renderEnvelope(response, getBooleanOption(options, "json"), io);
+  return response.status === "error" ? 1 : 0;
+}
+
+async function runActiveRecallCommand(
+  options: Map<string, string[]>,
+  cwd: string,
+  io: CliIo
+): Promise<number> {
+  const input: ActiveRecallCommandInput = {
+    prompt: requireStringOption(options, "prompt"),
+    scope: parseRecallScope(getStringOption(options, "scope") ?? "task")
+  };
+  const intent = getStringOption(options, "intent");
+  const focusPath = getStringOption(options, "focus-path");
+  const filters = getMultiValueOption(options, "filter");
+  const exposure = getStringOption(options, "exposure");
+  const limit = getStringOption(options, "limit");
+  const riskProfile = getStringOption(options, "risk-profile");
+
+  if (intent) {
+    input.intent = intent;
+  }
+
+  if (focusPath) {
+    input.focusPath = focusPath;
+  }
+
+  if (filters.length > 0) {
+    input.filters = filters;
+  }
+
+  if (exposure) {
+    input.exposureLevel = parseExposureLevel(exposure);
+  }
+
+  if (limit) {
+    input.limit = parsePositiveInteger(limit, "limit");
+  }
+
+  if (riskProfile) {
+    input.riskProfile = parseRiskLevel(riskProfile);
+  }
+
+  const response = await createRuntime(cwd, options).executeActiveRecall(input);
   renderEnvelope(response, getBooleanOption(options, "json"), io);
   return response.status === "error" ? 1 : 0;
 }
@@ -675,6 +778,8 @@ function renderHelp(): string {
     "  hippocode init [--target <path>] [--host claude|codex|both] [--force] [--json]",
     "  hippocode validate [--memory-root .memory] [--json]",
     "  hippocode recall --prompt <text> [--scope task|module|project] [--intent <text>] [--focus-path <path>] [--filter <value>] [--exposure summary|focused|full] [--limit <n>] [--memory-root <path>] [--json]",
+    "  hippocode associate --prompt <text> [--scope task|module|project] [--seed-id <id>] [--depth <n:1-2>] [--intent <text>] [--focus-path <path>] [--filter <value>] [--exposure summary|focused|full] [--limit <n>] [--memory-root <path>] [--json]",
+    "  hippocode active-recall --prompt <text> [--scope task|module|project] [--risk-profile low|medium|high] [--intent <text>] [--focus-path <path>] [--filter <value>] [--exposure summary|focused|full] [--limit <n>] [--memory-root <path>] [--json]",
     "  hippocode project-onboard --project-name <text> --project-summary <text> --current-phase <text> --focus <text> [--focus <text>...] [--constraint <text>] [--risk <text>] [--module-hint <text>] [--host <name>] [--exposure summary|focused|full] [--memory-root <path>] [--json]",
     "  hippocode forecast --task <text> [--constraint <text>] [--dependency <id>] [--risk-profile low|medium|high] [--exposure summary|focused|full] [--memory-root <path>] [--json]",
     "  hippocode reflect --session-event <text> [--session-event <text>...] --outcome <text> [--anomaly <text>] [--lesson <text>] [--time-range <iso-interval>] [--memory-root <path>] [--json]",
@@ -687,6 +792,8 @@ function renderHelp(): string {
     "  - 多值参数可重复传入，例如 --filter recall --filter runtime",
     "  - project-onboard 当前只维护 project-profile、current-focus 与基础 project graph 节点",
     "  - init 只初始化 Claude/Codex 的最小 Hippocode 插件目录说明文件，不会接入真实 hook 自动化",
+    "  - associate / active-recall 当前都是只读命令，基于 recall engine 做关系扩散与风险前置召回",
+    "  - associate 的 --depth 当前运行时会收敛到 1~2 跳范围",
     "  - forecast / reflect / sleep 目前直接对接最小 runtime，不额外实现 recallSnapshot / priorForecast 注入",
     "  - prune 当前只返回只读建议，不会直接删除记忆条目或改写 graph",
     "  - deep-sleep 当前只会真正晋升 decision、incident、pattern、module 层",

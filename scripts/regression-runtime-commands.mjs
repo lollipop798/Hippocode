@@ -493,8 +493,10 @@ async function runPruneRegression(projectRoot, runtimeFactory) {
     assert(response.payload.structured.readOnly === true, "prune 必须声明 readOnly。");
     assert(response.payload.structured.graphUnchanged === true, "prune 必须声明 graphUnchanged。");
     assert(entriesAfter.length === entriesBefore.length, "prune 不应改动 entry 数量。");
-    assert(graphAfter.nodes.length === graphBefore.nodes.length, "prune 不应新增或删除 graph nodes。");
-    assert(graphAfter.edges.length === graphBefore.edges.length, "prune 不应新增或删除 graph edges。");
+    assert(
+      JSON.stringify(graphAfter) === JSON.stringify(graphBefore),
+      "prune 不应改写 graph 快照。"
+    );
     assertTelemetry(response, "summary", ["summary"], "/hippo:status");
 
     return {
@@ -508,6 +510,94 @@ async function runPruneRegression(projectRoot, runtimeFactory) {
   }
 }
 
+async function runAssociateRegression(projectRoot, runtimeFactory) {
+  const { tempRoot, memoryRoot } = await createIsolatedMemoryRoot(projectRoot, "recall-regression");
+
+  try {
+    const now = createFixedNow();
+    const store = runtimeFactory.createFileMemoryStore({ rootDir: memoryRoot, now });
+    const runtime = runtimeFactory.createHippoRuntime({ store, now });
+    const graphBefore = await store.readGraph();
+
+    const response = await runtime.executeAssociate({
+      prompt: "runtime recall regression relation expansion",
+      scope: "task",
+      seedIds: ["incident:I-2026-04-13-001"],
+      exposureLevel: "focused",
+      limit: 4
+    });
+
+    const graphAfter = await store.readGraph();
+
+    assert(response.status !== "error", "associate regression 返回 error。");
+    assert(response.payload.structured.command === "/hippo:associate", "associate command 不正确。");
+    assert(
+      response.payload.structured.matches.length >= 2,
+      `associate matches 至少应为 2，实际 ${response.payload.structured.matches.length}`
+    );
+    assert(
+      response.payload.structured.matches.some((match) => match.linkedNodeIds.length > 0),
+      "associate 应返回至少一个带 graph 关联的 match。"
+    );
+    assert(
+      JSON.stringify(graphAfter) === JSON.stringify(graphBefore),
+      "associate 不应改写 graph 快照。"
+    );
+    assertTelemetry(response, "focused", ["summary", "focused"], "/hippo:forecast");
+
+    return {
+      matches: response.payload.structured.matches.length,
+      dependencies: response.telemetry.dependencies.length
+    };
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+}
+
+async function runActiveRecallRegression(projectRoot, runtimeFactory) {
+  const { tempRoot, memoryRoot } = await createIsolatedMemoryRoot(projectRoot, "recall-regression");
+
+  try {
+    const now = createFixedNow();
+    const store = runtimeFactory.createFileMemoryStore({ rootDir: memoryRoot, now });
+    const runtime = runtimeFactory.createHippoRuntime({ store, now });
+    const graphBefore = await store.readGraph();
+
+    const response = await runtime.executeActiveRecall({
+      prompt: "before changing runtime recall ranking",
+      scope: "task",
+      riskProfile: "high",
+      exposureLevel: "focused",
+      limit: 5
+    });
+
+    const graphAfter = await store.readGraph();
+
+    assert(response.status !== "error", "active-recall regression 返回 error。");
+    assert(response.payload.structured.command === "/hippo:active-recall", "active-recall command 不正确。");
+    assert(
+      response.payload.structured.matches.length >= 2,
+      `active-recall matches 至少应为 2，实际 ${response.payload.structured.matches.length}`
+    );
+    assert(
+      response.payload.structured.risks.length > 0,
+      "active-recall 应返回风险提示。"
+    );
+    assert(
+      JSON.stringify(graphAfter) === JSON.stringify(graphBefore),
+      "active-recall 不应改写 graph 快照。"
+    );
+    assertTelemetry(response, "focused", ["summary", "focused"], "/hippo:forecast");
+
+    return {
+      matches: response.payload.structured.matches.length,
+      risks: response.payload.structured.risks.length
+    };
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+}
+
 async function run() {
   const projectRoot = process.cwd();
   const mode = process.argv[2] ?? "all";
@@ -515,7 +605,18 @@ async function run() {
 
   const selectedModes =
     mode === "all"
-      ? ["project-onboard", "forecast", "reflect", "sleep", "status", "deep-sleep", "deep-sleep-partial", "prune"]
+      ? [
+          "project-onboard",
+          "forecast",
+          "reflect",
+          "sleep",
+          "associate",
+          "active-recall",
+          "status",
+          "deep-sleep",
+          "deep-sleep-partial",
+          "prune"
+        ]
       : [mode];
   const results = [];
 
@@ -560,6 +661,16 @@ async function run() {
 
     if (selectedMode === "prune") {
       results.push(["prune", await runPruneRegression(projectRoot, runtimeFactory)]);
+      continue;
+    }
+
+    if (selectedMode === "associate") {
+      results.push(["associate", await runAssociateRegression(projectRoot, runtimeFactory)]);
+      continue;
+    }
+
+    if (selectedMode === "active-recall") {
+      results.push(["active-recall", await runActiveRecallRegression(projectRoot, runtimeFactory)]);
       continue;
     }
 

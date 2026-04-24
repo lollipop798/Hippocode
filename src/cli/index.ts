@@ -873,48 +873,188 @@ function collectInitTargets(
   const targets: Array<{ path: string; content: string }> = [];
 
   if (host === "claude" || host === "both") {
-    targets.push({
-      path: resolve(targetRoot, ".claude/skills/hippo/README.md"),
-      content: createHostReadme("claude", "skills")
-    });
-    targets.push({
-      path: resolve(targetRoot, ".claude/hooks/README.md"),
-      content: createHostReadme("claude", "hooks")
-    });
+    targets.push(...createHostInitFiles(targetRoot, "claude"));
   }
 
   if (host === "codex" || host === "both") {
-    targets.push({
-      path: resolve(targetRoot, ".codex/skills/hippo/README.md"),
-      content: createHostReadme("codex", "skills")
-    });
-    targets.push({
-      path: resolve(targetRoot, ".codex/hooks/README.md"),
-      content: createHostReadme("codex", "hooks")
-    });
+    targets.push(...createHostInitFiles(targetRoot, "codex"));
   }
 
   return targets;
 }
 
-function createHostReadme(host: "claude" | "codex", kind: "skills" | "hooks"): string {
-  const hostName = host === "claude" ? "Claude Code" : "Codex CLI";
-
-  if (kind === "skills") {
-    return [
-      `# Hippocode ${hostName} Skills`,
-      "",
-      "此目录用于放置 Hippocode 的宿主技能说明与模板。",
-      "当前由 `hippocode init` 初始化，仅提供最小占位结构。"
-    ].join("\n");
-  }
+function createHostInitFiles(
+  targetRoot: string,
+  host: "claude" | "codex"
+): Array<{ path: string; content: string }> {
+  const root = `.${host}`;
 
   return [
-    `# Hippocode ${hostName} Hooks`,
-    "",
-    "此目录用于放置 Hippocode 的宿主 hooks 说明与模板。",
-    "当前由 `hippocode init` 初始化，不包含真实自动化 wiring。"
-  ].join("\n");
+    {
+      path: resolve(targetRoot, `${root}/README.md`),
+      content: createHostReadme(host, "root")
+    },
+    {
+      path: resolve(targetRoot, `${root}/skills/hippo/README.md`),
+      content: createHostReadme(host, "skills")
+    },
+    {
+      path: resolve(targetRoot, `${root}/hooks/README.md`),
+      content: createHostReadme(host, "hooks")
+    }
+  ];
+}
+
+function createHostReadme(
+  host: "claude" | "codex",
+  kind: "root" | "skills" | "hooks"
+): string {
+  const hostName = host === "claude" ? "Claude Code" : "Codex CLI";
+
+  if (kind === "root") {
+    return host === "claude"
+      ? [
+          "# Claude Host Template",
+          "",
+          "`.claude/` 用于放置 Hippocode 在 Claude Code 宿主中的轻量模板骨架。",
+          "",
+          "当前阶段目标：",
+          "- 说明 Claude host 下建议如何组织 `/hippo:` 命令与生命周期触发点",
+          "- 为后续人工接线预留稳定目录结构",
+          "",
+          "当前阶段不做：",
+          "- 不实现真实 hook 自动化 wiring",
+          "- 不假设 Claude Code 已自动识别本目录",
+          "- 不在本目录内固化任何会直接写入长期记忆的自动流程",
+          "",
+          "目录职责：",
+          "- `.claude/hooks/README.md`：记录生命周期 hook 的建议触发点与人工接线要求",
+          "- `.claude/skills/hippo/README.md`：记录 `/hippo:` 命令族在 Claude 侧的轻量映射方式",
+          "",
+          "共享协议来源：",
+          "- `AGENTS.md`",
+          "- `docs/commands.md`",
+          "- `src/core/types.ts`",
+          "",
+          "结论：当前目录是模板，不是已接通的插件。"
+        ].join("\n")
+      : [
+          "# Hippocode Codex 模板",
+          "",
+          "`.codex/` 用于放置 Hippocode 在 Codex 宿主侧的轻量模板与接线说明。",
+          "",
+          "当前阶段目标：",
+          "- 给 Codex 使用者一个可复制、可阅读、可手工接入的目录骨架",
+          "- 明确 `/hippo:*` 命令在 Codex 里的推荐映射方式",
+          "- 统一 Codex 侧偏好的结构化输出格式",
+          "",
+          "当前阶段不做：",
+          "- 自动注册 Codex hooks",
+          "- 自动发现并安装技能",
+          "- 自动把 `/hippo:*` 命令接入宿主生命周期",
+          "",
+          "目录职责：",
+          "- `.codex/hooks/README.md`：记录 Codex 场景到 `/hippo:*` 的建议触发点",
+          "- `.codex/skills/hippo/README.md`：记录 Codex 侧命令选择路由与输出偏好",
+          "",
+          "共享协议来源：",
+          "- `AGENTS.md`",
+          "- `docs/commands.md`",
+          "- `src/core/types.ts`",
+          "",
+          "结论：当前目录是模板，不是已接通的插件。"
+        ].join("\n");
+  }
+
+  if (kind === "skills") {
+    return host === "claude"
+      ? [
+          "# Hippocode Claude Skills Template",
+          "",
+          "本目录用于承载 Claude Code 下的 Hippocode 命令族说明与技能模板。",
+          "",
+          "建议职责：",
+          "- 向 Claude 描述 `/hippo:*` 命令语义",
+          "- 约束输入上下文与输出包裹结构",
+          "- 根据场景推荐下一条命令，而不是伪造自动化成功状态",
+          "",
+          "推荐命令分组：",
+          "- 启动与召回：`/hippo:recall`、`/hippo:associate`、`/hippo:active-recall`",
+          "- 预判与状态：`/hippo:forecast`、`/hippo:status`、`/hippo:project-onboard`",
+          "- 反思与沉淀：`/hippo:reflect`、`/hippo:sleep`、`/hippo:deep-sleep`、`/hippo:prune`",
+          "",
+          "输出约束：",
+          "- 优先阅读 `payload.humanReadable`，再按需展开 `payload.structured`",
+          "- 保留 `telemetry.confidence`、`exposureTrace`、`nextCommandHint`",
+          "",
+          "人工接线点：",
+          "- 需要人工把 README 中的命令说明翻译成宿主技能元数据",
+          "- 需要人工把 `/hippo:*` 连接到 CLI 或脚本入口"
+        ].join("\n")
+      : [
+          "# Codex Hippo 技能模板",
+          "",
+          "本目录用于承载 Hippocode 在 Codex 宿主中的技能说明模板。",
+          "",
+          "建议职责：",
+          "- 告诉 Codex 何时应该考虑调用 `/hippo:*`",
+          "- 约束命令返回的 `status / payload / telemetry` 结构",
+          "- 明确哪些语义来自 Hippocode 核心协议",
+          "",
+          "推荐命令路由：",
+          "- 最小上下文包：`/hippo:recall`",
+          "- 风险与影响面：`/hippo:forecast`、`/hippo:active-recall`",
+          "- 联想扩展：`/hippo:associate`",
+          "- 收尾沉淀：`/hippo:reflect`、`/hippo:sleep`",
+          "- 维护与晋升：`/hippo:status`、`/hippo:prune`、`/hippo:deep-sleep`",
+          "",
+          "输出偏好：",
+          "- 优先保留结构化字段，方便外层 CLI / tool 流消费 `payload.structured`",
+          "- 默认 `summary-first`，必要时再升级到 `focused` / `full`",
+          "",
+          "人工接线点：",
+          "- 需要人工决定技能是直接调用 CLI，还是调用外层适配器",
+          "- 需要人工决定结果只展示给用户，还是进入外层自动化链路"
+        ].join("\n");
+  }
+
+  return host === "claude"
+    ? [
+        "# Claude Hooks Template",
+        "",
+        "本目录用于描述 Claude Code 生命周期 hook 的建议触发点。",
+        "",
+        "推荐映射：",
+        "- `sessionStart`：优先 `/hippo:recall`，复杂任务补 `/hippo:forecast`",
+        "- `preTool`：高影响工具前优先 `/hippo:forecast`，必要时补 `/hippo:associate` / `/hippo:active-recall`",
+        "- `postTool`：关键工具执行后优先 `/hippo:reflect`，必要时提示 `/hippo:sleep`",
+        "- `sessionEnd`：先 `/hippo:reflect`，再视情况 `/hippo:sleep`",
+        "",
+        "人工接线要求：",
+        "- 需要人工决定哪些事件真正映射为 Claude hook",
+        "- `sleep / deep-sleep` 必须保留人工确认",
+        "- 当前只提供推荐映射，不包含真实自动化 wiring"
+      ].join("\n")
+    : [
+        "# Codex Hooks 模板",
+        "",
+        "本目录用于描述 Hippocode 在 Codex 宿主中的 hook 接线建议。",
+        "",
+        "推荐场景映射：",
+        "- 新任务开始前：`/hippo:recall`",
+        "- 实施前：`/hippo:forecast`",
+        "- 分支判断或遗忘上下文时：`/hippo:associate` / `/hippo:active-recall`",
+        "- 阶段完成后：`/hippo:reflect`",
+        "- 会话收尾：`/hippo:sleep`",
+        "",
+        "输出约束：",
+        "- 统一回收为 `status / payload / telemetry`",
+        "- 不确定时宁可返回 `partial`，也不要伪造高置信结果",
+        "",
+        "人工接线要求：",
+        "- 当前不提供可执行 hook 脚本或自动注册配置",
+        "- 维护者需要手工决定触发节点、输入组装方式和失败兜底策略"
+      ].join("\n");
 }
 
 function parseExposureLevel(value: string): ExposureLevel {

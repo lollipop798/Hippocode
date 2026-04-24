@@ -28,7 +28,7 @@ Hippocode 是一套受海马体启发的编码代理记忆框架，面向 Claude
 - `/hippo:deep-sleep` 的最小长期层晋升执行器
 - `/hippo:status` 的最小状态汇总执行器
 - 最小 CLI 可执行入口，支持 `init`、`validate`、`recall`、`associate`、`active-recall`、`project-onboard`、`forecast`、`reflect`、`sleep`、`prune`、`status`、`deep-sleep`
-- `hippocode init` 可为目标项目初始化 Claude Code / Codex 的 Hippocode 插件骨架
+- `hippocode init` 可为目标项目初始化 Claude Code / Codex 的 6 个宿主骨架 README
 - `scripts/smoke-test.mjs` 对 recall / sleep happy path 的最小回归验证
 - `fixtures/recall-regression/.memory` 与 `scripts/regression-recall-exposure.mjs` 的 recall 排序 / 暴露轨迹固定回归
 - `fixtures/forecast-regression/.memory`、`fixtures/reflect-regression/.memory`、`fixtures/sleep-regression/.memory` 与 `scripts/regression-runtime-commands.mjs` 的命令级固定回归

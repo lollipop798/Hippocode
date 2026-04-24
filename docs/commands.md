@@ -49,14 +49,17 @@
 
 当前阶段（Phase 2 MVP）仅初始化以下轻量文件，不接入真实 hooks 自动化：
 
+- `.claude/README.md`
 - `.claude/skills/hippo/README.md`
 - `.claude/hooks/README.md`
+- `.codex/README.md`
 - `.codex/skills/hippo/README.md`
 - `.codex/hooks/README.md`
 
 补充说明：
 
 - `hippocode commands [--json]` 可输出当前已实现的 `/hippo:` 命令描述，便于宿主与脚本探测能力边界
+- 这 6 个文件都只承担“目录用途 / 建议映射 / 共享协议来源 / 人工接线边界”的说明职责，不生成真实 wiring
 
 ## 2. `/hippo:recall`
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { access, cp, mkdtemp, rm } from "node:fs/promises";
+import { access, cp, mkdtemp, readFile, rm } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 import { resolve, join } from "node:path";
 import { tmpdir } from "node:os";
@@ -260,12 +260,14 @@ async function runInitRegression(projectRoot) {
     assert(payload.target === tempRoot, `init CLI target 期望 ${tempRoot}，实际 ${payload.target}`);
     assert(Array.isArray(payload.created), "init CLI created 必须是数组。");
     assert(Array.isArray(payload.skipped), "init CLI skipped 必须是数组。");
-    assert(payload.created.length === 4, `init CLI created 期望 4，实际 ${payload.created.length}`);
+    assert(payload.created.length === 6, `init CLI created 期望 6，实际 ${payload.created.length}`);
     assert(payload.skipped.length === 0, `init CLI skipped 期望 0，实际 ${payload.skipped.length}`);
 
     const expectedFiles = [
+      ".claude/README.md",
       ".claude/skills/hippo/README.md",
       ".claude/hooks/README.md",
+      ".codex/README.md",
       ".codex/skills/hippo/README.md",
       ".codex/hooks/README.md"
     ].map((item) => join(tempRoot, item));
@@ -273,6 +275,9 @@ async function runInitRegression(projectRoot) {
     for (const file of expectedFiles) {
       await assertReadable(file, "init 初始化文件");
     }
+
+    const rootReadme = await readFile(join(tempRoot, ".claude/README.md"), "utf8");
+    assert(rootReadme.includes("人工接线"), "init 生成的 Claude README 缺少人工接线说明。");
 
     return {
       created: payload.created.length,
